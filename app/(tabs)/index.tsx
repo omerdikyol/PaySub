@@ -1,14 +1,23 @@
-import { StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
-
-export default function TabOneScreen() {
+export default function Index() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
+      <Text style={styles.title}>Dashboard</Text>
+      <View style={styles.cards}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Total Income</Text>
+          <Text style={styles.amount}>$5,240</Text>
+        </View>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Total Expenses</Text>
+          <Text style={styles.amount}>$3,167</Text>
+        </View>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Balance</Text>
+          <Text style={styles.amount}>$2,073</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -16,16 +25,33 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 20,
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 20,
   },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
+  cards: {
+    gap: 15,
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardTitle: {
+    fontSize: 16,
+    color: '#666',
+  },
+  amount: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 5,
   },
 });
