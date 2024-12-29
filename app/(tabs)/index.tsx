@@ -1,12 +1,14 @@
 import { StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedView, ThemedText, ThemedCard } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
+import { ScreenLayout } from '@/components/ScreenLayout';
 
 export default function TabOneScreen() {
   const { colors } = useTheme();
   
   return (
-    <ThemedView style={styles.container}>
+    <ScreenLayout>
       <ThemedText style={styles.title}>Dashboard</ThemedText>
       
       <View style={styles.cards}>
@@ -31,7 +33,7 @@ export default function TabOneScreen() {
           <ThemedText style={styles.amount}>$1,111.11</ThemedText>
         </ThemedCard>
       </View>
-    </ThemedView>
+    </ScreenLayout>
   );
 }
 

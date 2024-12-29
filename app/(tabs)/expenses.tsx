@@ -1,7 +1,9 @@
 import { StyleSheet, FlatList } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { ThemedView, ThemedText, ThemedCard, ThemedButton } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
+import { ScreenLayout } from '@/components/ScreenLayout';
 
 type ExpenseItem = {
     id: string;
@@ -54,7 +56,7 @@ export default function Expenses() {
     );
 
     return (
-        <ThemedView style={styles.container}>
+        <ScreenLayout>
             <ThemedText style={styles.header}>Expenses</ThemedText>
             <FlatList
                 data={expenses}
@@ -63,7 +65,7 @@ export default function Expenses() {
                 style={styles.list}
             />
             <ThemedButton onPress={addExpense}>Add Expense</ThemedButton>
-        </ThemedView>
+        </ScreenLayout>
     );
 }
 

@@ -1,7 +1,8 @@
 import { StyleSheet, FlatList } from 'react-native';
 import { useState } from 'react';
-import { ThemedView, ThemedText, ThemedCard, ThemedButton } from '@/components/Themed';
+import { ThemedText, ThemedCard, ThemedButton } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
+import { ScreenLayout } from '@/components/ScreenLayout';
 
 type IncomeItem = {
     id: string;
@@ -37,7 +38,7 @@ export default function Income() {
     );
 
     return (
-        <ThemedView style={styles.container}>
+        <ScreenLayout>
             <ThemedText style={styles.header}>Income</ThemedText>
             <FlatList
                 data={incomeItems}
@@ -46,7 +47,7 @@ export default function Income() {
                 style={styles.list}
             />
             <ThemedButton onPress={addIncome}>Add Income</ThemedButton>
-        </ThemedView>
+        </ScreenLayout>
     );
 }
 

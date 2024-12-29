@@ -4,6 +4,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { ThemedView, ThemedText, ThemedSection } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
 import { setColorScheme } from '@/constants/Colors';
+import { ScreenLayout } from '@/components/ScreenLayout';
 
 interface SettingSectionProps {
     title: string;
@@ -49,38 +50,40 @@ export default function Settings() {
     };
 
     return (
-        <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-            <ThemedText style={styles.header}>Settings</ThemedText>
+        <ScreenLayout>
+            <ScrollView style={styles.container}>
+                <ThemedText style={styles.header}>Settings</ThemedText>
 
-            <SettingSection title="Appearance">
-                <SettingRow label="Dark Mode">
-                    <Switch
-                        value={colorScheme === 'dark'}
-                        onValueChange={handleThemeChange}
-                        trackColor={{ false: '#767577', true: colors.secondary }}
-                        thumbColor="#f4f3f4"
-                    />
-                </SettingRow>
-            </SettingSection>
+                <SettingSection title="Appearance">
+                    <SettingRow label="Dark Mode">
+                        <Switch
+                            value={colorScheme === 'dark'}
+                            onValueChange={handleThemeChange}
+                            trackColor={{ false: '#767577', true: colors.secondary }}
+                            thumbColor="#f4f3f4"
+                        />
+                    </SettingRow>
+                </SettingSection>
 
-            <SettingSection title="Preferences">
-                <SettingRow label="Currency">
-                    <TouchableOpacity onPress={() => {/* Handle currency selection */}}>
-                        <ThemedText style={styles.buttonText}>
-                            {currency}
-                        </ThemedText>
-                    </TouchableOpacity>
-                </SettingRow>
-                <SettingRow label="Notifications">
-                    <Switch
-                        value={notifications}
-                        onValueChange={setNotifications}
-                        trackColor={{ false: '#767577', true: colors.secondary }}
-                        thumbColor="#f4f3f4"
-                    />
-                </SettingRow>
-            </SettingSection>
-        </ScrollView>
+                <SettingSection title="Preferences">
+                    <SettingRow label="Currency">
+                        <TouchableOpacity onPress={() => {/* Handle currency selection */}}>
+                            <ThemedText style={styles.buttonText}>
+                                {currency}
+                            </ThemedText>
+                        </TouchableOpacity>
+                    </SettingRow>
+                    <SettingRow label="Notifications">
+                        <Switch
+                            value={notifications}
+                            onValueChange={setNotifications}
+                            trackColor={{ false: '#767577', true: colors.secondary }}
+                            thumbColor="#f4f3f4"
+                        />
+                    </SettingRow>
+                </SettingSection>
+            </ScrollView>
+        </ScreenLayout>
     );
 }
 
