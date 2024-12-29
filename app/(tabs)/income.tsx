@@ -1,5 +1,7 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
+import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
 
 type IncomeItem = {
     id: string;
@@ -9,6 +11,7 @@ type IncomeItem = {
 };
 
 export default function Income() {
+    const colorScheme = useColorScheme();
     const [incomeItems, setIncomeItems] = useState<IncomeItem[]>([]);
 
     const addIncome = () => {
@@ -22,23 +25,38 @@ export default function Income() {
     };
 
     const renderItem = ({ item }: { item: IncomeItem }) => (
-        <View style={styles.incomeItem}>
-            <Text style={styles.amount}>${item.amount}</Text>
-            <Text style={styles.description}>{item.description}</Text>
+        <View style={[styles.incomeItem, {
+            backgroundColor: colorScheme === 'dark' ? '#1e1e1e' : '#f5f5f5'
+        }]}>
+            <Text style={[styles.amount, {
+                color: colorScheme === 'dark' ? '#00FF00' : '#008000'
+            }]}>${item.amount}</Text>
+            <Text style={[styles.description, {
+                color: Colors[colorScheme].text
+            }]}>{item.description}</Text>
             <Text style={styles.date}>{item.date}</Text>
         </View>
     );
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.header}>Income</Text>
+        <View style={[styles.container, {
+            backgroundColor: Colors[colorScheme].background
+        }]}>
+            <Text style={[styles.header, {
+                color: Colors[colorScheme].text
+            }]}>Income</Text>
             <FlatList
                 data={incomeItems}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}
                 style={styles.list}
             />
-            <TouchableOpacity style={styles.addButton} onPress={addIncome}>
+            <TouchableOpacity 
+                style={[styles.addButton, {
+                    backgroundColor: colorScheme === 'dark' ? '#007AFF' : '#2f95dc'
+                }]} 
+                onPress={addIncome}
+            >
                 <Text style={styles.addButtonText}>Add Income</Text>
             </TouchableOpacity>
         </View>
@@ -49,38 +67,33 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
-        backgroundColor: '#121212',
     },
     header: {
         fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 20,
-        color: '#ffffff',
     },
     list: {
         flex: 1,
     },
     incomeItem: {
         padding: 15,
-        backgroundColor: '#1e1e1e',
         borderRadius: 8,
         marginBottom: 10,
     },
     amount: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#00FF00',
     },
     description: {
         fontSize: 16,
-        color: '#bbbbbb',
     },
     date: {
         fontSize: 14,
         color: '#888888',
+        marginTop: 5,
     },
     addButton: {
-        backgroundColor: '#007AFF',
         padding: 15,
         borderRadius: 8,
         alignItems: 'center',
