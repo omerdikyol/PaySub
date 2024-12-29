@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, FlatList } from 'react-native';
 import { useState } from 'react';
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { ThemedView, ThemedText, ThemedCard, ThemedButton } from '@/components/Themed';
+import { useTheme } from '@/components/useTheme';
 
 type IncomeItem = {
     id: string;
@@ -11,7 +11,7 @@ type IncomeItem = {
 };
 
 export default function Income() {
-    const colorScheme = useColorScheme();
+    const { colors } = useTheme();
     const [incomeItems, setIncomeItems] = useState<IncomeItem[]>([]);
 
     const addIncome = () => {
@@ -25,41 +25,28 @@ export default function Income() {
     };
 
     const renderItem = ({ item }: { item: IncomeItem }) => (
-        <View style={[styles.incomeItem, {
-            backgroundColor: colorScheme === 'dark' ? '#1e1e1e' : '#f5f5f5'
-        }]}>
-            <Text style={[styles.amount, {
-                color: colorScheme === 'dark' ? '#00FF00' : '#008000'
-            }]}>${item.amount}</Text>
-            <Text style={[styles.description, {
-                color: Colors[colorScheme].text
-            }]}>{item.description}</Text>
-            <Text style={styles.date}>{item.date}</Text>
-        </View>
+        <ThemedCard>
+            <ThemedText style={[styles.amount, { color: colors.success }]}>
+                +${item.amount}
+            </ThemedText>
+            <ThemedText style={styles.description}>{item.description}</ThemedText>
+            <ThemedText style={[styles.date, { color: colors.muted }]}>
+                {item.date}
+            </ThemedText>
+        </ThemedCard>
     );
 
     return (
-        <View style={[styles.container, {
-            backgroundColor: Colors[colorScheme].background
-        }]}>
-            <Text style={[styles.header, {
-                color: Colors[colorScheme].text
-            }]}>Income</Text>
+        <ThemedView style={styles.container}>
+            <ThemedText style={styles.header}>Income</ThemedText>
             <FlatList
                 data={incomeItems}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}
                 style={styles.list}
             />
-            <TouchableOpacity 
-                style={[styles.addButton, {
-                    backgroundColor: colorScheme === 'dark' ? '#007AFF' : '#2f95dc'
-                }]} 
-                onPress={addIncome}
-            >
-                <Text style={styles.addButtonText}>Add Income</Text>
-            </TouchableOpacity>
-        </View>
+            <ThemedButton onPress={addIncome}>Add Income</ThemedButton>
+        </ThemedView>
     );
 }
 

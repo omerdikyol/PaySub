@@ -42,21 +42,41 @@ export function getCurrentColorScheme() {
   return currentColorScheme;
 }
 
-export default {
+const Colors = {
   light: {
-    text: '#000',
-    background: '#fff',
-    tint: tintColorLight,
-    tabIconDefault: '#ccc',
-    tabIconSelected: tintColorLight,
-    border: '#e5e5e5'
+    text: '#000000',
+    background: '#ffffff',
+    surface: '#f5f5f5',
+    primary: '#2f95dc',
+    secondary: '#4caf50',
+    accent: '#007AFF',
+    border: '#e5e5e5',
+    success: '#008000',
+    error: '#d32f2f',
+    muted: '#666666',
+    card: {
+      background: '#ffffff',
+      shadow: '#000000',
+      title: '#666666'
+    }
   },
   dark: {
-    text: '#fff',
-    background: '#000',
-    tint: tintColorDark,
-    tabIconDefault: '#ccc',
-    tabIconSelected: tintColorDark,
-    border: '#333333'
-  },
+    text: '#ffffff',
+    background: '#000000',
+    surface: '#1e1e1e',
+    primary: '#fff',
+    secondary: '#4caf50',
+    accent: '#007AFF',
+    border: '#333333',
+    success: '#00FF00',
+    error: '#ff5252',
+    muted: '#888888',
+    card: {
+      background: '#1e1e1e',
+      shadow: '#ffffff',
+      title: '#888888'
+    }
+  }
 };
+
+export default Colors;

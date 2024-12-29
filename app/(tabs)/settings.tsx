@@ -1,7 +1,9 @@
-import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, Switch, TouchableOpacity, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { useColorScheme } from '@/components/useColorScheme';
-import Colors, { setColorScheme } from '@/constants/Colors';
+import { ThemedView, ThemedText, ThemedSection } from '@/components/Themed';
+import { useTheme } from '@/components/useTheme';
+import { setColorScheme } from '@/constants/Colors';
 
 interface SettingSectionProps {
     title: string;
@@ -14,34 +16,28 @@ interface SettingRowProps {
 }
 
 const SettingSection: React.FC<SettingSectionProps> = ({ title, children }) => {
-    const colorScheme = useColorScheme();
     return (
-        <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { 
-                color: Colors[colorScheme].text
-            }]}>{title}</Text>
-            <View style={[styles.sectionContent, { 
-                backgroundColor: Colors[colorScheme].background,
-                borderColor: Colors[colorScheme].border
-            }]}>
+        <ThemedView style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
+            <ThemedSection>
                 {children}
-            </View>
-        </View>
+            </ThemedSection>
+        </ThemedView>
     );
 };
 
 const SettingRow: React.FC<SettingRowProps> = ({ label, children }) => {
-    const colorScheme = useColorScheme();
     return (
-        <View style={styles.row}>
-            <Text style={[styles.label, { color: Colors[colorScheme].text }]}>{label}</Text>
+        <ThemedView style={styles.row}>
+            <ThemedText style={styles.label}>{label}</ThemedText>
             {children}
-        </View>
+        </ThemedView>
     );
 };
 
 export default function Settings() {
     const colorScheme = useColorScheme();
+    const { colors } = useTheme();
     const [notifications, setNotifications] = useState(true);
     const [currency, setCurrency] = useState('USD');
 
@@ -53,20 +49,16 @@ export default function Settings() {
     };
 
     return (
-        <ScrollView style={[styles.container, { 
-            backgroundColor: Colors[colorScheme].background 
-        }]}>
-            <Text style={[styles.header, {
-                color: Colors[colorScheme].text
-            }]}>Settings</Text>
+        <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+            <ThemedText style={styles.header}>Settings</ThemedText>
 
             <SettingSection title="Appearance">
                 <SettingRow label="Dark Mode">
                     <Switch
                         value={colorScheme === 'dark'}
                         onValueChange={handleThemeChange}
-                        trackColor={{ false: '#767577', true: '#4caf50' }}
-                        thumbColor={notifications ? '#f4f3f4' : '#f4f3f4'}
+                        trackColor={{ false: '#767577', true: colors.secondary }}
+                        thumbColor="#f4f3f4"
                     />
                 </SettingRow>
             </SettingSection>
@@ -74,17 +66,17 @@ export default function Settings() {
             <SettingSection title="Preferences">
                 <SettingRow label="Currency">
                     <TouchableOpacity onPress={() => {/* Handle currency selection */}}>
-                        <Text style={[styles.buttonText, { color: Colors[colorScheme].text }]}>
+                        <ThemedText style={styles.buttonText}>
                             {currency}
-                        </Text>
+                        </ThemedText>
                     </TouchableOpacity>
                 </SettingRow>
                 <SettingRow label="Notifications">
                     <Switch
                         value={notifications}
                         onValueChange={setNotifications}
-                        trackColor={{ false: '#767577', true: '#4caf50' }}
-                        thumbColor={notifications ? '#f4f3f4' : '#f4f3f4'}
+                        trackColor={{ false: '#767577', true: colors.secondary }}
+                        thumbColor="#f4f3f4"
                     />
                 </SettingRow>
             </SettingSection>
@@ -110,18 +102,13 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginBottom: 8,
     },
-    sectionContent: {
-        borderRadius: 12,
-        borderWidth: 1,
-        overflow: 'hidden',
-    },
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#e5e5e5',
+        borderBottomColor: 'rgba(0,0,0,0.1)',
     },
     label: {
         fontSize: 16,
