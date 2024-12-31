@@ -1,9 +1,10 @@
 import { StyleSheet, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ThemedView, ThemedText, ThemedCard, ThemedButton } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
 import { ScreenLayout } from '@/components/ScreenLayout';
+import { MonthNavigation } from '@/components/MonthNavigation';
 
 type ExpenseItem = {
     id: string;
@@ -16,13 +17,26 @@ type ExpenseItem = {
 export default function Expenses() {
     const { colors } = useTheme();
     const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
+    const [currentDate, setCurrentDate] = useState(new Date());
+
+    const filteredExpenses = useMemo(() => {
+        return expenses.filter(expense => {
+            const expenseDate = new Date(expense.date);
+            return expenseDate.getMonth() === currentDate.getMonth() &&
+                   expenseDate.getFullYear() === currentDate.getFullYear();
+        });
+    }, [expenses, currentDate]);
+
+    const totalExpenses = useMemo(() => {
+        return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    }, [filteredExpenses]);
 
     const addExpense = () => {
         const newItem: ExpenseItem = {
             id: Date.now().toString(),
             amount: 0,
             description: 'New Expense',
-            date: new Date().toISOString().split('T')[0],
+            date: currentDate.toISOString().split('T')[0],
             category: 'Other'
         };
         setExpenses([...expenses, newItem]);
@@ -58,8 +72,15 @@ export default function Expenses() {
     return (
         <ScreenLayout>
             <ThemedText style={styles.header}>Expenses</ThemedText>
+            <MonthNavigation 
+                currentDate={currentDate}
+                onMonthChange={setCurrentDate}
+            />
+            <ThemedText style={styles.totalText}>
+                Total: ${totalExpenses.toFixed(2)}
+            </ThemedText>
             <FlatList
-                data={expenses}
+                data={filteredExpenses}
                 renderItem={renderExpense}
                 keyExtractor={item => item.id}
                 style={styles.list}
@@ -104,5 +125,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#888888',
         marginTop: 5,
-    }
+    },
+    totalText: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 15,
+        textAlign: 'right',
+    },
 });

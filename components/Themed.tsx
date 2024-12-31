@@ -3,7 +3,7 @@
  * https://docs.expo.io/guides/color-schemes/
  */
 
-import { Text as DefaultText, View as DefaultView, Text as RNText, View as RNView, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text as DefaultText, View as DefaultView, Text as RNText, View as RNView, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from './useColorScheme';
@@ -62,7 +62,7 @@ export function ThemedCard({ style, ...props }) {
       style={[
         styles.card, 
         { 
-          backgroundColor: colors.card.background,
+          backgroundColor: colors.surface,
           shadowColor: colors.card.shadow 
         }, 
         style
@@ -108,6 +108,48 @@ export function ThemedSection({ style, ...props }) {
   );
 }
 
+interface ThemedInputProps {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+  keyboardType?: 'default' | 'numeric' | 'email-address';
+  style?: any;
+}
+
+export function ThemedInput({ 
+  label, 
+  value, 
+  onChangeText, 
+  placeholder, 
+  keyboardType = 'default',
+  style 
+}: ThemedInputProps) {
+  const { colors } = useTheme();
+
+  return (
+    <RNView style={styles.inputContainer}>
+      <RNText style={[styles.label, { color: colors.text }]}>{label}</RNText>
+      <TextInput
+        style={[
+          styles.input,
+          { 
+            color: colors.text,
+            backgroundColor: colors.card.background,
+            borderColor: colors.border
+          },
+          style
+        ]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.muted}
+        keyboardType={keyboardType}
+      />
+    </RNView>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     padding: 15,
@@ -136,5 +178,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  inputContainer: {
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  input: {
+    height: 40,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
   },
 });
