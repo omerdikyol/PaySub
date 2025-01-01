@@ -412,23 +412,26 @@ import {
                   <ThemedText style={[styles.amountText, { color: colors.text }]}>
                     {formatCurrency(item.amount, item.originalExpense.currency)}
                   </ThemedText>
-                </View>
-                <View style={styles.rightContent}>
                   {item.paymentStatus?.isPaid && (
                     <View style={styles.paidBadge}>
                       <FontAwesome name="check" size={12} color="#fff" />
                       <ThemedText style={styles.paidText}>PAID</ThemedText>
                     </View>
                   )}
+                </View>
+                <View style={styles.rightContent}>
                   <TouchableOpacity
                     style={styles.paymentButton}
                     onPress={(e) => handlePaymentButtonClick(e, item)}
                   >
-                    <FontAwesome 
-                        name={item.paymentStatus?.isPaid ? "times" : "check"} 
-                        size={20} 
-                        color={colors.text} 
-                    />
+                    <View style={styles.rightContent}>
+                      <FontAwesome 
+                          name={item.paymentStatus?.isPaid ? "times" : "credit-card"} 
+                          size={20} 
+                          color={colors.text}
+                      />
+                    </View>
+
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.itemMenuButton}
@@ -779,7 +782,7 @@ import {
                                                     style={[styles.payButton, { flexDirection: 'row', alignItems: 'center' }]}
                                                     onPress={() => handlePaymentToggle(item)}
                                                 >
-                                                    <FontAwesome name="check" size={16} color="#fff" style={{ marginRight: 6 }} />
+                                                    <FontAwesome name="credit-card" size={16} color="#fff" style={{ marginRight: 6 }} />
                                                     <ThemedText style={styles.payButtonText}>
                                                         Pay
                                                     </ThemedText>
@@ -880,9 +883,9 @@ import {
       marginLeft: 6
     },
     itemMenuButton: {
-      padding: 8,
+      padding: 2,
       marginRight: -8,
-      marginTop: -8,
+      marginLeft: 6,
       alignSelf: 'center'
     },
     listHeader: {
@@ -999,7 +1002,7 @@ import {
     },
     rightContent: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-end',
       gap: 8,
     },
     paidBadge: {
@@ -1019,7 +1022,7 @@ import {
     paymentButton: {
         padding: 8,
         borderRadius: 20,
-        backgroundColor: 'rgba(0,0,0,0.05)',
+        backgroundColor: 'rgba(48, 48, 48, 0.144)',
     },
 
     paymentHistoryModal: {

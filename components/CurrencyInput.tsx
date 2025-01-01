@@ -92,7 +92,7 @@ export function CurrencyInput({ value, onChange, currency, onCurrencyChange }: C
     <View style={styles.container}>
       <View style={[
         styles.inputContainer,
-        { backgroundColor: colors.surface },
+        { backgroundColor: 'rgba(128,128,128,0.1)' },
         focused && styles.focusedInput
       ]}>
         <TextInput
@@ -123,7 +123,7 @@ export function CurrencyInput({ value, onChange, currency, onCurrencyChange }: C
         />
 
         <TouchableOpacity 
-          style={[styles.currencySelector, { backgroundColor: colors.surface }]}
+          style={[styles.currencySelector]}
           onPress={() => setShowCurrencyPicker(true)}
         >
           <ThemedText style={styles.currencyText}>
@@ -226,6 +226,7 @@ const styles = StyleSheet.create({
   currencyText: {
     fontSize: 16,
     fontWeight: '600',
+    backgroundColor: 'transparent',
   },
   modalOverlay: {
     flex: 1,
@@ -240,6 +241,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     elevation: 5,
     shadowColor: '#000',
+    backgroundColor: 'rgba(128,128,128,0.1)',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,

@@ -43,7 +43,7 @@ export function AddIncomeModal({
   const { colors } = useTheme();
 
   // Fields
-  const [amount, setAmount] = useState('0,00');
+  const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('TRY');
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState(new Date());
@@ -144,7 +144,7 @@ export function AddIncomeModal({
   };
 
   const resetForm = () => {
-    setAmount('0,00');
+    setAmount('');
     setCurrency('TRY');
     setName('');
     setStartDate(new Date());

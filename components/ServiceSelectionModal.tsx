@@ -74,7 +74,7 @@ export function ServiceSelectionModal({
                         onPress={() => onSelect(null)}
                     >
                         <FontAwesome name="plus" size={24} color={colors.text} />
-                        <ThemedText style={styles.defaultText}>Add Default Expense</ThemedText>
+                        <ThemedText style={styles.defaultText}>Add Expense</ThemedText>
                     </TouchableOpacity>
 
                     <FlatList
