@@ -25,6 +25,7 @@ import { AddIncomeModal } from '@/components/AddIncomeModal';
 import { formatCurrency } from '@/utils/currency';
 import { IncomeItem, Occurrence } from '@/app/types/income';
 import { FontAwesome } from '@expo/vector-icons';
+import { useFinance } from '@/context/FinanceContext';
 
 function getOccurrencesInRange(income: IncomeItem, startDate: Date, endDate: Date): Occurrence[] {
   const occurrences: Occurrence[] = [];
@@ -146,7 +147,7 @@ type CurrencyTotal = {
 
 export default function Income() {
   const { colors } = useTheme();
-  const [incomeItems, setIncomeItems] = useState<IncomeItem[]>([]);
+  const { incomes, addIncome, updateIncome, deleteIncome } = useFinance();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingIncome, setEditingIncome] = useState<IncomeItem | null>(null);
@@ -167,7 +168,7 @@ export default function Income() {
       const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
       monthEnd.setMilliseconds(-1);
       
-      return incomeItems.flatMap(income => 
+      return incomes.flatMap(income => 
           getOccurrencesInRange(income, monthStart, monthEnd)
               .map(occurrence => ({
                   ...occurrence,
@@ -177,7 +178,7 @@ export default function Income() {
                   originalIncome: income
               }))
       ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [incomeItems, currentDate]);
+  }, [incomes, currentDate]);
 
   const totalIncome = useMemo(() => {
       return monthOccurrences.reduce((sum, occurrence) => sum + occurrence.amount, 0);
@@ -244,11 +245,7 @@ export default function Income() {
 
   // -- CRUD Handlers (unchanged) --
   const handleAddIncome = (newIncome: Omit<IncomeItem, 'id'>) => {
-      const income: IncomeItem = {
-          ...newIncome,
-          id: Date.now().toString()
-      };
-      setIncomeItems(prev => [...prev, income]);
+    addIncome(newIncome);
   };
 
   const handleEditIncome = () => {
@@ -261,23 +258,12 @@ export default function Income() {
   };
 
   const handleSaveIncome = (updatedIncome: Omit<IncomeItem, 'id'>) => {
-      if (editingIncome) {
-          // Update existing income
-          setIncomeItems(prev => prev.map(item => 
-              item.id === editingIncome.id 
-                  ? { ...updatedIncome, id: editingIncome.id }
-                  : item
-          ));
-          setEditingIncome(null);
-      } else {
-          // Add new income
-          const income: IncomeItem = {
-              ...updatedIncome,
-              id: Date.now().toString()
-          };
-          setIncomeItems(prev => [...prev, income]);
-      }
-      setIsModalVisible(false);
+    if (editingIncome) {
+      updateIncome(editingIncome.id, updatedIncome);
+    } else {
+      addIncome(updatedIncome);
+    }
+    setIsModalVisible(false);
   };
 
   const handleCloseModal = () => {
@@ -291,11 +277,11 @@ export default function Income() {
   };
 
   const handleConfirmDelete = () => {
-      if (selectedIncome) {
-          setIncomeItems(prev => prev.filter(item => item.id !== selectedIncome.id));
-          setShowDeleteConfirm(false);
-          setSelectedIncome(null);
-      }
+    if (selectedIncome) {
+      deleteIncome(selectedIncome.id);
+      setShowDeleteConfirm(false);
+      setSelectedIncome(null);
+    }
   };
 
   // -- Render item --

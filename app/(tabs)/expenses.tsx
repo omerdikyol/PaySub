@@ -26,6 +26,7 @@ import {
   import { formatCurrency } from '@/utils/currency';
   import { ExpenseItem, Occurrence } from '@/app/types/expense';
   import { FontAwesome } from '@expo/vector-icons';
+  import { useFinance } from '@/context/FinanceContext';
   
   // Modify the getOccurrencesInRange function to include payment status
   function getOccurrencesInRange(expense: ExpenseItem, startDate: Date, endDate: Date): Occurrence[] {
@@ -150,7 +151,7 @@ import {
 
   export default function Expense() {
     const { colors } = useTheme();
-    const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([]);
+    const { expenses, addExpense, updateExpense, deleteExpense, updateExpensePaymentStatus } = useFinance();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
@@ -174,7 +175,7 @@ import {
         const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
         monthEnd.setMilliseconds(-1);
         
-        return expenseItems.flatMap(expense => 
+        return expenses.flatMap(expense => 
             getOccurrencesInRange(expense, monthStart, monthEnd)
                 .map(occurrence => ({
                     ...occurrence,
@@ -184,7 +185,7 @@ import {
                     originalExpense: expense
                 }))
         ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    }, [expenseItems, currentDate]);
+    }, [expenses, currentDate]);
   
     const totalExpenseByCurrency = useMemo(() => {
         return monthOccurrences.reduce((totals, occurrence) => {
@@ -266,27 +267,12 @@ import {
   
     const handleSaveExpense = (updatedExpense: Omit<ExpenseItem, 'id'>) => {
         if (editingExpense) {
-            // Update existing expense, preserve existing payment history
-            setExpenseItems(prev => prev.map(item => 
-                item.id === editingExpense.id 
-                    ? { 
-                        ...updatedExpense, 
-                        id: editingExpense.id,
-                        paymentHistory: item.paymentHistory // Preserve existing payment history
-                    }
-                    : item
-            ));
-            setEditingExpense(null);
+            updateExpense(editingExpense.id, updatedExpense);
         } else {
-            // Add new expense with empty payment history
-            const expense: ExpenseItem = {
-                ...updatedExpense,
-                id: Date.now().toString(),
-                paymentHistory: {} // Initialize empty payment history
-            };
-            setExpenseItems(prev => [...prev, expense]);
+            addExpense(updatedExpense);
         }
         setIsModalVisible(false);
+        setEditingExpense(null);
     };
   
     const handleCloseModal = () => {
@@ -301,7 +287,7 @@ import {
   
     const handleConfirmDelete = () => {
         if (selectedExpense) {
-            setExpenseItems(prev => prev.filter(item => item.id !== selectedExpense.id));
+            deleteExpense(selectedExpense.id);
             setShowDeleteConfirm(false);
             setSelectedExpense(null);
         }
@@ -310,45 +296,16 @@ import {
     // Add new function to handle payment toggle
     const handlePaymentToggle = (occurrence: typeof monthOccurrences[0]) => {
         const dateStr = occurrence.date;
-        const expense = occurrence.originalExpense;
-        
-        setExpenseItems(prev => {
-            const newItems = prev.map(item => {
-                if (item.id !== expense.id) return item;
-                
-                const newHistory = { ...item.paymentHistory };
-                if (newHistory[dateStr]?.isPaid) {
-                    // If paid, mark as unpaid and remove paid date
-                    newHistory[dateStr] = { isPaid: false };
-                } else {
-                    // If unpaid, mark as paid with current date
-                    newHistory[dateStr] = { 
-                        isPaid: true, 
-                        paidDate: new Date().toISOString() 
-                    };
-                }
+        updateExpensePaymentStatus(
+            occurrence.originalExpense.id,
+            dateStr,
+            !occurrence.paymentStatus?.isPaid
+        );
 
-                return {
-                    ...item,
-                    paymentHistory: newHistory
-                };
-            });
-            
-            // After updating the expense items, refresh the related payments
-            if (selectedOccurrence) {
-                const updatedExpense = newItems.find(item => item.id === expense.id);
-                if (updatedExpense) {
-                    setRelatedPayments(
-                        getRelatedPayments({
-                            ...occurrence,
-                            originalExpense: updatedExpense
-                        })
-                    );
-                }
-            }
-            
-            return newItems;
-        });
+        // After updating, refresh related payments if needed
+        if (selectedOccurrence) {
+            setRelatedPayments(getRelatedPayments(occurrence));
+        }
     };
 
     // Add new handler for payment button click
