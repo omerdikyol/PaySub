@@ -16,13 +16,19 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   return (
     <>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].accent,
+          tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].muted,
+          tabBarStyle: {
+            backgroundColor: Colors[colorScheme ?? 'light'].card.background,
+            borderTopColor: Colors[colorScheme ?? 'light'].border,
+          },
           headerShown: false,
         }}
       >

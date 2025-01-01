@@ -301,8 +301,6 @@ export default function TabOneScreen() {
 
       {/* Rest of the dashboard content */}
       <ScrollView style={styles.scrollView}>
-        <ThemedText style={styles.title}>Dashboard</ThemedText>
-        
         <ThemedCard style={styles.mainCard}>
           <ThemedText style={styles.cardTitle}>Monthly Overview</ThemedText>
           <ThemedText style={[

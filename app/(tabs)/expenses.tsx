@@ -296,17 +296,30 @@ import {
     // Add new function to handle payment toggle
     const handlePaymentToggle = (occurrence: typeof monthOccurrences[0]) => {
         const dateStr = occurrence.date;
+        const newIsPaidStatus = !occurrence.paymentStatus?.isPaid;
+        
         updateExpensePaymentStatus(
-            occurrence.originalExpense.id,
-            dateStr,
-            !occurrence.paymentStatus?.isPaid
+          occurrence.originalExpense.id,
+          dateStr,
+          newIsPaidStatus
         );
-
-        // After updating, refresh related payments if needed
-        if (selectedOccurrence) {
-            setRelatedPayments(getRelatedPayments(occurrence));
-        }
-    };
+    
+        // Immediately update the related payments list
+        setRelatedPayments(prev => 
+          prev.map(payment => {
+            if (payment.id === occurrence.id) {
+              return {
+                ...payment,
+                paymentStatus: {
+                  isPaid: newIsPaidStatus,
+                  paidDate: newIsPaidStatus ? new Date().toISOString() : undefined
+                }
+              };
+            }
+            return payment;
+          })
+        );
+      };
 
     // Add new handler for payment button click
     const handlePaymentButtonClick = (e: GestureResponderEvent, occurrence: typeof monthOccurrences[0]) => {
@@ -756,7 +769,9 @@ import {
                                                         <ThemedText style={styles.paidText}>PAID</ThemedText>
                                                     </View>
                                                     <ThemedText style={styles.paidDate}>
-                                                        {new Date(item.paymentStatus.paidDate || '').toLocaleDateString('en-GB')}
+                                                        {item.paymentStatus.paidDate ? 
+                                                            new Date(item.paymentStatus.paidDate).toLocaleDateString('en-GB')
+                                                            : ''}
                                                     </ThemedText>
                                                 </>
                                             ) : (

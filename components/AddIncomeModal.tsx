@@ -64,10 +64,17 @@ export function AddIncomeModal({
   // Error handling
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const formatPriceForDisplay = (price: number): string => {
+    return price.toLocaleString('tr-TR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
   // Populate initial values if editing
   useEffect(() => {
     if (initialIncome && visible) {
-      setAmount(initialIncome.amount.toString());
+      setAmount(formatPriceForDisplay(initialIncome.amount));
       setCurrency(initialIncome.currency);
       setName(initialIncome.name);
 
@@ -100,9 +107,19 @@ export function AddIncomeModal({
     }
     setErrorMessage(null);
 
-    const numericAmount = parseCurrencyInput(amount, currency);
+    // Convert amount string to number
+    const numericAmount = parseFloat(
+      amount
+        .replace(/\./g, '') // Remove thousand separators
+        .replace(',', '.') // Replace decimal comma with dot
+    );
+    
+    if (isNaN(numericAmount)) {
+      setErrorMessage('Invalid amount');
+      return;
+    }
 
-    // Construct new/updated income
+    // Save with the correctly parsed amount
     onSave({
       amount: numericAmount,
       currency,

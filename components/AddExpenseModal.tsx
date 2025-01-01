@@ -71,10 +71,31 @@ export function AddExpenseModal({
   const [selectedService, setSelectedService] = useState<SubscriptionService | null>(null);
   const [customServiceName, setCustomServiceName] = useState('');
 
+  // Update price handling functions
+  const formatPriceForDisplay = (price: number): string => {
+    // Use Turkish locale formatting and replace dot with comma
+    return price.toLocaleString('tr-TR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const parsePriceInput = (input: string): string => {
+    // Remove any non-numeric characters except decimal point and comma
+    const cleaned = input.replace(/[^\d,]/g, '');
+    // Handle decimal places
+    const parts = cleaned.split(',');
+    if (parts.length > 1) {
+      return `${parts[0]},${parts[1].slice(0, 2)}`;
+    }
+    return cleaned;
+  };
+
   // Populate initial values if editing
   useEffect(() => {
     if (initialExpense && visible) {
-      setAmount(initialExpense.amount.toString());
+      // Format the amount correctly preserving all digits
+      setAmount(formatPriceForDisplay(initialExpense.amount));
       setCurrency(initialExpense.currency);
       setName(initialExpense.name);
 
@@ -138,7 +159,17 @@ export function AddExpenseModal({
     }
     setErrorMessage(null);
 
-    const numericAmount = parseCurrencyInput(amount, currency);
+    // Convert amount string to number
+    const numericAmount = parseFloat(
+      amount
+        .replace(/\./g, '') // Remove thousand separators
+        .replace(',', '.') // Replace decimal comma with dot
+    );
+
+    if (isNaN(numericAmount)) {
+      setErrorMessage('Invalid amount');
+      return;
+    }
 
     // Construct new/updated expense
     onSave({

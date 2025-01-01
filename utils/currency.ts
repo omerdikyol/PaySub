@@ -101,39 +101,20 @@ export const currencies: { [key: string]: Currency } = {
   }
 };
 
-export function formatCurrency(amount: number, currencyCode: string = 'TRY'): string {
-  const currency = currencies[currencyCode] || currencies.TRY;
-  
-  // Convert to string with maximum precision to avoid rounding
-  const wholeNumber = Math.floor(amount);
-  const decimal = Math.round((amount - wholeNumber) * 100);
-  
-  // Format whole number with thousand separators
-  const formattedWhole = wholeNumber
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, currency.thousand);
-  
-  // Format decimal part with leading zero if needed
-  const formattedDecimal = decimal.toString().padStart(2, '0');
-  
-  const formatted = `${formattedWhole}${currency.decimal}${formattedDecimal}`;
-
-  return currency.position === 'before' 
-    ? `${currency.symbol}${formatted}`
-    : `${formatted} ${currency.symbol}`;
+export function formatCurrency(amount: number, currency: string = 'TRY'): string {
+  // Format with thousand separators and proper decimal places
+  const formatted = amount.toLocaleString('tr-TR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${formatted} ${currency}`;
 }
 
-export function parseCurrencyInput(value: string, currencyCode: string = 'TRY'): number {
-  const currency = currencies[currencyCode] || currencies.TRY;
-  
-  // Remove all thousand separators and convert decimal separator to dot
-  const normalizedValue = value
-    .replace(new RegExp('\\' + currency.thousand, 'g'), '')
-    .replace(currency.decimal, '.');
-  
-  // Parse as float with fixed precision
-  const numberValue = parseFloat(normalizedValue);
-  
-  // Return with 2 decimal places
-  return Math.round(numberValue * 100) / 100;
+export function parseCurrencyInput(input: string): number {
+  // Remove everything except numbers and comma
+  const cleanedInput = input.replace(/[^\d,]/g, '');
+  // Replace comma with dot for parseFloat
+  const normalized = cleanedInput.replace(',', '.');
+  // Parse the number
+  return parseFloat(normalized);
 }
