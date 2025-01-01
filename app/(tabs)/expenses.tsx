@@ -8,7 +8,8 @@ import {
     Keyboard,
     Platform,
     GestureResponderEvent,
-    PanResponderGestureState
+    PanResponderGestureState,
+    Image
   } from 'react-native';
   import { useState, useMemo, useRef } from 'react';
   import { 
@@ -26,6 +27,7 @@ import {
   import { ExpenseItem, Occurrence } from '@/app/types/expense';
   import { FontAwesome } from '@expo/vector-icons';
   
+  // Modify the getOccurrencesInRange function to include payment status
   function getOccurrencesInRange(expense: ExpenseItem, startDate: Date, endDate: Date): Occurrence[] {
     const occurrences: Occurrence[] = [];
     const start = new Date(expense.startDate);
@@ -91,9 +93,11 @@ import {
     const addOccurrence = (date: Date) => {
         if (date >= startDate && date <= endDate && 
             (!recurrenceEnd || date <= recurrenceEnd)) {
+            const dateStr = date.toISOString();
             occurrences.push({
-                date: date.toISOString(),
-                amount: expense.amount
+                date: dateStr,
+                amount: expense.amount,
+                paymentStatus: expense.paymentHistory[dateStr] || { isPaid: false }
             });
         }
     };
@@ -139,6 +143,11 @@ import {
     return occurrences;
   }
   
+  // Add new type for currency totals
+  type CurrencyTotal = {
+    [currency: string]: number;
+  };
+
   export default function Expense() {
     const { colors } = useTheme();
     const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([]);
@@ -154,8 +163,11 @@ import {
     const [showSortMenu, setShowSortMenu] = useState(false);
     const [isGrouped, setIsGrouped] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
+    const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+    const [selectedOccurrence, setSelectedOccurrence] = useState<typeof monthOccurrences[0] | null>(null);
+    const [relatedPayments, setRelatedPayments] = useState<typeof monthOccurrences>([]);
   
-    // -- Memoized data calculations (unchanged) --
+    // -- Memoized data calculations (unchanged) -- 
     const monthOccurrences = useMemo(() => {
         const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         // Fix: Use next month's first day minus 1 millisecond to include the full last day
@@ -174,8 +186,12 @@ import {
         ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }, [expenseItems, currentDate]);
   
-    const totalExpense = useMemo(() => {
-        return monthOccurrences.reduce((sum, occurrence) => sum + occurrence.amount, 0);
+    const totalExpenseByCurrency = useMemo(() => {
+        return monthOccurrences.reduce((totals, occurrence) => {
+            const currency = occurrence.originalExpense.currency;
+            totals[currency] = (totals[currency] || 0) + occurrence.amount;
+            return totals;
+        }, {} as CurrencyTotal);
     }, [monthOccurrences]);
   
     const filteredOccurrences = useMemo(() => {
@@ -229,11 +245,12 @@ import {
         return Object.values(groups);
     }, [sortedOccurrences, isGrouped]);
   
-    // -- CRUD Handlers (unchanged) --
+    // -- CRUD Handlers (unchanged) -- 
     const handleAddExpense = (newExpense: Omit<ExpenseItem, 'id'>) => {
         const expense: ExpenseItem = {
             ...newExpense,
-            id: Date.now().toString()
+            id: Date.now().toString(),
+            paymentHistory: {} // Initialize empty payment history
         };
         setExpenseItems(prev => [...prev, expense]);
     };
@@ -249,18 +266,23 @@ import {
   
     const handleSaveExpense = (updatedExpense: Omit<ExpenseItem, 'id'>) => {
         if (editingExpense) {
-            // Update existing expense
+            // Update existing expense, preserve existing payment history
             setExpenseItems(prev => prev.map(item => 
                 item.id === editingExpense.id 
-                    ? { ...updatedExpense, id: editingExpense.id }
+                    ? { 
+                        ...updatedExpense, 
+                        id: editingExpense.id,
+                        paymentHistory: item.paymentHistory // Preserve existing payment history
+                    }
                     : item
             ));
             setEditingExpense(null);
         } else {
-            // Add new expense
+            // Add new expense with empty payment history
             const expense: ExpenseItem = {
                 ...updatedExpense,
-                id: Date.now().toString()
+                id: Date.now().toString(),
+                paymentHistory: {} // Initialize empty payment history
             };
             setExpenseItems(prev => [...prev, expense]);
         }
@@ -284,8 +306,86 @@ import {
             setSelectedExpense(null);
         }
     };
+
+    // Add new function to handle payment toggle
+    const handlePaymentToggle = (occurrence: typeof monthOccurrences[0]) => {
+        const dateStr = occurrence.date;
+        const expense = occurrence.originalExpense;
+        
+        setExpenseItems(prev => {
+            const newItems = prev.map(item => {
+                if (item.id !== expense.id) return item;
+                
+                const newHistory = { ...item.paymentHistory };
+                if (newHistory[dateStr]?.isPaid) {
+                    // If paid, mark as unpaid and remove paid date
+                    newHistory[dateStr] = { isPaid: false };
+                } else {
+                    // If unpaid, mark as paid with current date
+                    newHistory[dateStr] = { 
+                        isPaid: true, 
+                        paidDate: new Date().toISOString() 
+                    };
+                }
+
+                return {
+                    ...item,
+                    paymentHistory: newHistory
+                };
+            });
+            
+            // After updating the expense items, refresh the related payments
+            if (selectedOccurrence) {
+                const updatedExpense = newItems.find(item => item.id === expense.id);
+                if (updatedExpense) {
+                    setRelatedPayments(
+                        getRelatedPayments({
+                            ...occurrence,
+                            originalExpense: updatedExpense
+                        })
+                    );
+                }
+            }
+            
+            return newItems;
+        });
+    };
+
+    // Add new handler for payment button click
+    const handlePaymentButtonClick = (e: GestureResponderEvent, occurrence: typeof monthOccurrences[0]) => {
+        e.stopPropagation();
+        handlePaymentToggle(occurrence);
+    };
+
+    // Add new function to get all related payments
+    const getRelatedPayments = (occurrence: typeof monthOccurrences[0]) => {
+        const expense = occurrence.originalExpense;
+        const today = new Date();
+        // Look back 6 months and forward 6 months
+        const startDate = new Date(today);
+        startDate.setMonth(startDate.getMonth() - 6);
+        const endDate = new Date(today);
+        endDate.setMonth(endDate.getMonth() + 6);
+
+        return getOccurrencesInRange(expense, startDate, endDate)
+            .map(occ => ({
+                ...occ,
+                id: `${expense.id}-${occ.date}`,
+                name: expense.name,
+                color: expense.color,
+                originalExpense: expense
+            }))
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    };
+
+    // Modify the card press handler to set related payments
+    const handleCardPress = (occurrence: typeof monthOccurrences[0]) => {
+        setSelectedOccurrence(occurrence);
+        setRelatedPayments(getRelatedPayments(occurrence));
+        setShowPaymentHistory(true);
+    };
   
-    // -- Render item --
+    // -- Render item -- 
     const renderItem = ({ item }: { item: typeof monthOccurrences[0] }) => {
       // For grouped items, item might be a group instead
       if (isGrouped) {
@@ -310,41 +410,71 @@ import {
             : `${recurrenceType[0].toUpperCase()}${recurrenceType.slice(1)}`
           : '';
   
+      // Get the display name - use custom name if available
+      const displayName = item.originalExpense.service?.customName || item.name;
+  
       return (
         <TouchableOpacity
           activeOpacity={0.8}
-          onPress={() => {
-            // Maybe open a detail screen or do nothing
-          }}
+          onPress={() => handleCardPress(item)}
           style={styles.cardTouchArea}
         >
-          <ThemedCard style={styles.card}>
+          <ThemedCard style={[
+            styles.card,
+            item.paymentStatus?.isPaid && styles.paidCard
+          ]}>
             {/* Left color bar */}
             <View style={[styles.colorBar, { backgroundColor: item.color }]} />
   
             <View style={styles.cardContent}>
-              {/* Amount + name */}
-              <View style={{ 
-                flexDirection: 'row', 
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <ThemedText style={[styles.amountText, { color: colors.text }]}>
-                  {formatCurrency(item.amount, item.originalExpense.currency)}
-                </ThemedText>
+              <View style={styles.statusRow}>
+                <View style={styles.leftContent}>
+                  {/* Show service logo if available */}
+                  {item.originalExpense.service?.logo && (
+                    <Image 
+                      source={typeof item.originalExpense.service.logo === 'string' 
+                        ? { uri: item.originalExpense.service.logo }
+                        : item.originalExpense.service.logo
+                      }
+                      style={styles.serviceLogo}
+                    />
+                  )}
+                  <ThemedText style={[styles.amountText, { color: colors.text }]}>
+                    {formatCurrency(item.amount, item.originalExpense.currency)}
+                  </ThemedText>
+                </View>
+                <View style={styles.rightContent}>
+                  {item.paymentStatus?.isPaid && (
+                    <View style={styles.paidBadge}>
+                      <FontAwesome name="check" size={12} color="#fff" />
+                      <ThemedText style={styles.paidText}>PAID</ThemedText>
+                    </View>
+                  )}
                   <TouchableOpacity
-                  style={[styles.itemMenuButton, { alignContent: 'center' }]}
-                  onPress={() => {
-                    setSelectedExpense(item.originalExpense);
-                    setShowMenu(true);
-                  }}
+                    style={styles.paymentButton}
+                    onPress={(e) => handlePaymentButtonClick(e, item)}
                   >
-                  <FontAwesome name="ellipsis-v" size={24} color={colors.text} />
+                    <FontAwesome 
+                        name={item.paymentStatus?.isPaid ? "times" : "check"} 
+                        size={20} 
+                        color={colors.text} 
+                    />
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.itemMenuButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setSelectedExpense(item.originalExpense);
+                      setShowMenu(true);
+                    }}
+                  >
+                    <FontAwesome name="ellipsis-v" size={24} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
               </View>
   
               <ThemedText style={[styles.nameText, { color: colors.muted }]}>
-                {item.name}
+                {displayName}
               </ThemedText>
   
               {/* Date + recurrence */}
@@ -364,17 +494,21 @@ import {
       );
     };
   
-    // -- List Header (search + total) --
+    // -- List Header (search + total) -- 
     const renderListHeader = () => {
-      return (
-        <View style={[styles.listHeader, { backgroundColor: colors.background }]}>
-          <View style={styles.totalContainer}>
-            <ThemedText style={styles.totalText}>
-              Total: {formatCurrency(totalExpense)}
-            </ThemedText>
-          </View>
-        </View>
-      );
+        const totalString = Object.entries(totalExpenseByCurrency)
+            .map(([currency, amount]) => formatCurrency(amount, currency))
+            .join(' + ');
+
+        return (
+            <View style={[styles.listHeader, { backgroundColor: colors.background }]}>
+                <View style={styles.totalContainer}>
+                    <ThemedText style={styles.totalText}>
+                        Total: {totalString}
+                    </ThemedText>
+                </View>
+            </View>
+        );
     };
   
     return (
@@ -605,6 +739,89 @@ import {
             </ThemedView>
           </TouchableOpacity>
         </Modal>
+
+        {/* Payment History Modal */}
+        <Modal
+            visible={showPaymentHistory}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowPaymentHistory(false)}
+        >
+            <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowPaymentHistory(false)}
+            >
+                <ThemedView style={[styles.paymentHistoryModal, { backgroundColor: colors.card.background }]}>
+                    <View style={styles.paymentHistoryHeader}>
+                        <ThemedText style={styles.paymentHistoryTitle}>
+                            Payment History
+                        </ThemedText>
+                        <TouchableOpacity
+                            style={styles.closeButton}
+                            onPress={() => setShowPaymentHistory(false)}
+                        >
+                            <FontAwesome name="times" size={24} color={colors.text} />
+                        </TouchableOpacity>
+                    </View>
+
+                    {selectedOccurrence && (
+                        <>
+                            <ThemedText style={styles.expenseName}>
+                                {selectedOccurrence.name}
+                            </ThemedText>
+                            <ThemedText style={styles.expenseRecurrence}>
+                                {selectedOccurrence.originalExpense.recurrence.type === 'custom' 
+                                    ? `Every ${selectedOccurrence.originalExpense.recurrence.interval} ${selectedOccurrence.originalExpense.recurrence.intervalUnit || 'month'}`
+                                    : `${selectedOccurrence.originalExpense.recurrence.type[0].toUpperCase()}${selectedOccurrence.originalExpense.recurrence.type.slice(1)}`
+                                }
+                            </ThemedText>
+
+                            <FlatList
+                                data={relatedPayments}
+                                style={styles.paymentsList}
+                                keyExtractor={(item) => item.id}
+                                renderItem={({ item }) => (
+                                    <View style={styles.paymentItem}>
+                                        <View>
+                                            <ThemedText style={styles.paymentItemDate}>
+                                                {new Date(item.date).toLocaleDateString('en-GB')}
+                                            </ThemedText>
+                                            <ThemedText style={styles.paymentItemAmount}>
+                                                {formatCurrency(item.amount, item.originalExpense.currency)}
+                                            </ThemedText>
+                                        </View>
+                                        <View style={styles.paymentItemStatus}>
+                                            {item.paymentStatus?.isPaid ? (
+                                                <>
+                                                    <View style={styles.paidBadge}>
+                                                        <FontAwesome name="check" size={12} color="#fff" />
+                                                        <ThemedText style={styles.paidText}>PAID</ThemedText>
+                                                    </View>
+                                                    <ThemedText style={styles.paidDate}>
+                                                        {new Date(item.paymentStatus.paidDate || '').toLocaleDateString('en-GB')}
+                                                    </ThemedText>
+                                                </>
+                                            ) : (
+                                                <TouchableOpacity
+                                                    style={[styles.payButton, { flexDirection: 'row', alignItems: 'center' }]}
+                                                    onPress={() => handlePaymentToggle(item)}
+                                                >
+                                                    <FontAwesome name="check" size={16} color="#fff" style={{ marginRight: 6 }} />
+                                                    <ThemedText style={styles.payButtonText}>
+                                                        Pay
+                                                    </ThemedText>
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
+                                    </View>
+                                )}
+                            />
+                        </>
+                    )}
+                </ThemedView>
+            </TouchableOpacity>
+        </Modal>
       </ScreenLayout>
     );
   }
@@ -799,6 +1016,152 @@ import {
       paddingBottom: 10,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: 'rgba(0,0,0,0.1)',
-    }
+    },
+    paidCard: {
+      opacity: 0.8,
+    },
+    statusRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    rightContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    paidBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#34C759',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      gap: 4,
+    },
+    paidText: {
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    paymentButton: {
+        padding: 8,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+    },
+
+    paymentHistoryModal: {
+        width: '90%',
+        maxWidth: 400,
+        borderRadius: 12,
+        padding: 20,
+        maxHeight: '80%',
+    },
+
+    paymentHistoryHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+
+    paymentHistoryTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+
+    closeButton: {
+        padding: 4,
+    },
+
+    expenseName: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+
+    expenseAmount: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 16,
+    },
+
+    paymentInfo: {
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        padding: 16,
+        borderRadius: 8,
+    },
+
+    paymentDate: {
+        fontSize: 16,
+        marginBottom: 8,
+    },
+
+    paymentStatus: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+
+    expenseRecurrence: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 20,
+    },
+
+    paymentsList: {
+        flexGrow: 0,
+    },
+
+    paymentItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: 'rgba(0,0,0,0.1)',
+    },
+
+    paymentItemDate: {
+        fontSize: 16,
+        marginBottom: 4,
+    },
+
+    paymentItemAmount: {
+        fontSize: 14,
+        color: '#666',
+    },
+
+    paymentItemStatus: {
+        alignItems: 'flex-end',
+    },
+
+    paidDate: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 4,
+    },
+
+    payButton: {
+        backgroundColor: '#007AFF',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 16,
+    },
+
+    payButtonText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    leftContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    serviceLogo: {
+      width: 24,
+      height: 24,
+      borderRadius: 4,
+    },
   });
-  

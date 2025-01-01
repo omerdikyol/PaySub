@@ -10,14 +10,16 @@ import {
   Keyboard,
   SafeAreaView
 } from 'react-native';
-import { ThemedView, ThemedText, ThemedButton, ThemedInput } from '@/components/Themed';
-import { useTheme } from '@/components/useTheme';
+import { ThemedView, ThemedText, ThemedButton, ThemedInput } from '../components/Themed';
+import { useTheme } from '../components/useTheme';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { CustomIntervalModal } from './CustomIntervalModal';
-import { ExpenseItem, RecurrenceType } from '@/types/expense';
-import { parseCurrencyInput } from '@/utils/currency';
+import { ExpenseItem, RecurrenceType } from '../app/types/expense';
+import { parseCurrencyInput } from '../utils/currency';
 import { CurrencyInput } from './CurrencyInput';
 import { FontAwesome } from '@expo/vector-icons';
+import { ServiceSelectionModal } from './ServiceSelectionModal';
+import { SubscriptionService } from '../app/types/service';
 
 const COLORS = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
@@ -64,6 +66,11 @@ export function AddExpenseModal({
   // Error handling
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Service selection
+  const [showServiceSelection, setShowServiceSelection] = useState(true);
+  const [selectedService, setSelectedService] = useState<SubscriptionService | null>(null);
+  const [customServiceName, setCustomServiceName] = useState('');
+
   // Populate initial values if editing
   useEffect(() => {
     if (initialExpense && visible) {
@@ -84,8 +91,39 @@ export function AddExpenseModal({
       if (initialExpense.recurrence.endDate) {
         setEndDate(new Date(initialExpense.recurrence.endDate));
       }
+
+      // Handle service data if exists
+      if (initialExpense.service) {
+        setSelectedService({
+          id: initialExpense.service.id,
+          name: initialExpense.service.name,
+          logo: initialExpense.service.logo,
+        });
+        setCustomServiceName(initialExpense.service.customName || '');
+      }
+
+      // Skip service selection when editing
+      setShowServiceSelection(false);
     }
   }, [initialExpense, visible]);
+
+  // Handle service selection
+  const handleServiceSelect = (service: SubscriptionService | null) => {
+    setSelectedService(service);
+    setShowServiceSelection(false);
+    if (service) {
+      setName(service.name);
+      if (service.defaultPrice) {
+        // Format price correctly by converting to string with 2 decimal places
+        setAmount(service.defaultPrice.toFixed(2).replace('.', ','));
+      }
+      if (service.defaultCurrency) {
+        setCurrency(service.defaultCurrency);
+      }
+      // Set monthly recurrence by default for subscription services
+      setRecurrenceType('monthly');
+    }
+  };
 
   // --- Save / Cancel ---
   const handleSave = () => {
@@ -114,7 +152,13 @@ export function AddExpenseModal({
         interval: recurrenceType === 'custom' ? parseInt(customInterval) : undefined,
         intervalUnit: recurrenceType === 'custom' ? intervalUnit : undefined,
         endDate: endDate?.toISOString()
-      }
+      },
+      service: selectedService ? {
+        id: selectedService.id,
+        name: selectedService.name,
+        logo: selectedService.logo,
+        customName: customServiceName || undefined
+      } : undefined
     });
 
     resetForm();
@@ -123,6 +167,7 @@ export function AddExpenseModal({
 
   const handleCancel = () => {
     resetForm();
+    setShowServiceSelection(true); // Reset to show service selection
     onClose();
   };
 
@@ -136,6 +181,9 @@ export function AddExpenseModal({
     setRecurrenceType('once');
     setCustomInterval('1');
     setIntervalUnit('month');
+    setSelectedService(null); // Reset selected service
+    setCustomServiceName(''); // Reset custom service name
+    setShowServiceSelection(true); // Reset to show service selection
   };
 
   // Date pickers
@@ -175,224 +223,243 @@ export function AddExpenseModal({
 
   // Layout
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={false}
-      onRequestClose={handleCancel}
-    >
-      {/* Tap outside text inputs to dismiss keyboard */}
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={[
-          styles.screenContainer,
-          { backgroundColor: colors.background }
-        ]}>
-          {/* Card-like container */}
-          <ThemedView style={[styles.modalCard, { backgroundColor: colors.card.background }]}>
-            {/* Header */}
-            <View style={styles.headerRow}>
-              <ThemedText style={styles.title}>
-                {initialExpense ? 'Edit Expense' : 'Add New Expense'}
-              </ThemedText>
-            </View>
+    <>
+      <ServiceSelectionModal
+        visible={visible && showServiceSelection}
+        onClose={onClose}
+        onSelect={handleServiceSelect}
+      />
+      
+      <Modal
+        visible={visible && !showServiceSelection}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={handleCancel}
+      >
+        {/* Tap outside text inputs to dismiss keyboard */}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={[
+            styles.screenContainer,
+            { backgroundColor: colors.background }
+          ]}>
+            {/* Card-like container */}
+            <ThemedView style={[styles.modalCard, { backgroundColor: colors.card.background }]}>
+              {/* Header */}
+              <View style={styles.headerRow}>
+                <ThemedText style={styles.title}>
+                  {initialExpense ? 'Edit Expense' : 'Add New Expense'}
+                </ThemedText>
+              </View>
 
-            <ScrollView
-              style={styles.contentScroll}
-              contentContainerStyle={{ paddingBottom: 30 }}
-              keyboardShouldPersistTaps="handled"
-            >
-              {/* AMOUNT + CURRENCY */}
-              <CurrencyInput
-                value={amount}
-                onChange={setAmount}
-                currency={currency}
-                onCurrencyChange={setCurrency}
-              />
+              <ScrollView
+                style={styles.contentScroll}
+                contentContainerStyle={{ paddingBottom: 30 }}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* AMOUNT + CURRENCY */}
+                <CurrencyInput
+                  value={amount}
+                  onChange={setAmount}
+                  currency={currency}
+                  onCurrencyChange={setCurrency}
+                />
 
-              {/* NAME */}
-              <ThemedInput
-                label="Name"
-                value={name}
-                onChangeText={setName}
-                placeholder="Enter expense name"
-                style={styles.input}
-              />
+                {/* NAME */}
+                <ThemedInput
+                  label="Name"
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Enter expense name"
+                  style={styles.input}
+                />
 
-              {/* DATE FIELDS */}
-              <View style={styles.dateRow}>
-                {/* START DATE */}
-                <View style={styles.dateCol}>
-                  <ThemedText style={styles.label}>Start Date</ThemedText>
-                  <TouchableOpacity
-                    style={[styles.dateButton, { borderColor: colors.border }]}
-                    onPress={() => setStartPickerVisible(true)}
-                  >
-                    <ThemedText>{startDate.toLocaleDateString()}</ThemedText>
-                  </TouchableOpacity>
+                {/* Add custom name input if service is selected */}
+                {selectedService && (
+                  <ThemedInput
+                    label="Custom Name (Optional)"
+                    value={customServiceName}
+                    onChangeText={setCustomServiceName}
+                    placeholder={`e.g., ${selectedService.name} Family`}
+                    style={styles.input}
+                  />
+                )}
+
+                {/* DATE FIELDS */}
+                <View style={styles.dateRow}>
+                  {/* START DATE */}
+                  <View style={styles.dateCol}>
+                    <ThemedText style={styles.label}>Start Date</ThemedText>
+                    <TouchableOpacity
+                      style={[styles.dateButton, { borderColor: colors.border }]}
+                      onPress={() => setStartPickerVisible(true)}
+                    >
+                      <ThemedText>{startDate.toLocaleDateString()}</ThemedText>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* END DATE (optional for recurring) */}
+                  {recurrenceType !== 'once' && (
+                    <View style={styles.dateCol}>
+                      <ThemedText style={styles.label}>End Date</ThemedText>
+                      {endDate ? (
+                        <>
+                          <TouchableOpacity
+                            style={[styles.dateButton, { borderColor: colors.border }]}
+                            onPress={() => setEndPickerVisible(true)}
+                          >
+                            <ThemedText>{endDate.toLocaleDateString()}</ThemedText>
+                          </TouchableOpacity>
+                          <ThemedButton
+                            style={styles.clearButton}
+                            onPress={() => setEndDate(null)}
+                          >
+                            Clear
+                          </ThemedButton>
+                        </>
+                      ) : (
+                        <ThemedButton
+                          style={styles.endButton}
+                          onPress={() => {
+                            setEndPickerVisible(true);
+                            if (!endDate) setEndDate(new Date());
+                          }}
+                        >
+                          Set End Date
+                        </ThemedButton>
+                      )}
+                    </View>
+                  )}
                 </View>
 
-                {/* END DATE (optional for recurring) */}
-                {recurrenceType !== 'once' && (
-                  <View style={styles.dateCol}>
-                    <ThemedText style={styles.label}>End Date</ThemedText>
-                    {endDate ? (
-                      <>
-                        <TouchableOpacity
-                          style={[styles.dateButton, { borderColor: colors.border }]}
-                          onPress={() => setEndPickerVisible(true)}
-                        >
-                          <ThemedText>{endDate.toLocaleDateString()}</ThemedText>
-                        </TouchableOpacity>
-                        <ThemedButton
-                          style={styles.clearButton}
-                          onPress={() => setEndDate(null)}
-                        >
-                          Clear
-                        </ThemedButton>
-                      </>
-                    ) : (
-                      <ThemedButton
-                        style={styles.endButton}
-                        onPress={() => {
-                          setEndPickerVisible(true);
-                          if (!endDate) setEndDate(new Date());
-                        }}
-                      >
-                        Set End Date
-                      </ThemedButton>
-                    )}
-                  </View>
-                )}
-              </View>
-
-              {/* RECURRENCE */}
-              <ThemedText style={styles.label}>Recurrence</ThemedText>
-              <TouchableOpacity
-                style={[styles.recurrenceButton, { borderColor: colors.border }]}
-                onPress={openRecurrenceSheet}
-              >
-                <ThemedText>
-                  {recurrenceType === 'custom'
-                    ? `Custom: every ${customInterval} ${
-                        intervalUnit === 'day' ? 'days' : 'months'
-                      }`
-                    : recurrenceType.charAt(0).toUpperCase() + recurrenceType.slice(1)}
-                </ThemedText>
-                <FontAwesome name="chevron-down" size={12} color={colors.text} />
-              </TouchableOpacity>
-
-              {/* COLOR PICKER */}
-              <ThemedText style={[styles.label, { marginTop: 16 }]}>Color</ThemedText>
-              <View style={styles.colorGrid}>
-                {COLORS.map((color) => (
-                  <TouchableOpacity
-                    key={color}
-                    style={[
-                      styles.colorCircle,
-                      { backgroundColor: color },
-                      selectedColor === color && {
-                        borderWidth: 3,
-                        borderColor: colors.text
-                      }
-                    ]}
-                    onPress={() => setSelectedColor(color)}
-                  />
-                ))}
-              </View>
-            </ScrollView>
-
-            {/* FOOTER BUTTONS */}
-            <View style={styles.footerButtons}>
-              <ThemedButton style={[styles.footerBtn, styles.cancelBtn]} onPress={handleCancel}>
-                Cancel
-              </ThemedButton>
-              <ThemedButton style={[styles.footerBtn, styles.saveBtn]} onPress={handleSave}>
-                Save
-              </ThemedButton>
-            </View>
-          </ThemedView>
-
-          {/* START / END PICKERS */}
-          <DateTimePickerModal
-            isVisible={startPickerVisible}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            date={startDate}
-            onConfirm={handleStartConfirm}
-            onCancel={() => setStartPickerVisible(false)}
-          />
-          <DateTimePickerModal
-            isVisible={endPickerVisible}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            date={endDate || new Date()}
-            onConfirm={handleEndConfirm}
-            onCancel={() => setEndPickerVisible(false)}
-          />
-
-          {/* RECURRENCE SELECTION SHEET */}
-          <Modal
-            visible={showRecurrenceSheet}
-            transparent
-            animationType="slide"
-            onRequestClose={closeRecurrenceSheet}
-          >
-            <SafeAreaView style={styles.sheetBackdrop}>
-              <View style={[styles.sheetContainer, { backgroundColor: colors.card.background }]}>
-                <ThemedText style={styles.sheetTitle}>Choose Recurrence</ThemedText>
-                {(['once', 'daily', 'weekly', 'monthly', 'yearly', 'custom'] as RecurrenceType[]).map(
-                  (item) => (
-                    <TouchableOpacity
-                      key={item}
-                      style={styles.sheetItem}
-                      onPress={() => handleRecurrenceSelect(item)}
-                    >
-                      <ThemedText>
-                        {item.charAt(0).toUpperCase() + item.slice(1)}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  )
-                )}
-                <TouchableOpacity style={styles.sheetCancel} onPress={closeRecurrenceSheet}>
-                  <ThemedText style={{ color: '#FF3B30' }}>Cancel</ThemedText>
+                {/* RECURRENCE */}
+                <ThemedText style={styles.label}>Recurrence</ThemedText>
+                <TouchableOpacity
+                  style={[styles.recurrenceButton, { borderColor: colors.border }]}
+                  onPress={openRecurrenceSheet}
+                >
+                  <ThemedText>
+                    {recurrenceType === 'custom'
+                      ? `Custom: every ${customInterval} ${
+                          intervalUnit === 'day' ? 'days' : 'months'
+                        }`
+                      : recurrenceType.charAt(0).toUpperCase() + recurrenceType.slice(1)}
+                  </ThemedText>
+                  <FontAwesome name="chevron-down" size={12} color={colors.text} />
                 </TouchableOpacity>
-              </View>
-            </SafeAreaView>
-          </Modal>
 
-          {/* CUSTOM INTERVAL MODAL */}
-          <CustomIntervalModal
-            visible={showCustomIntervalModal}
-            initialInterval={customInterval}
-            initialUnit={intervalUnit}
-            onCancel={handleCancelCustomInterval}
-            onSave={handleSaveCustomInterval}
-          />
+                {/* COLOR PICKER */}
+                <ThemedText style={[styles.label, { marginTop: 16 }]}>Color</ThemedText>
+                <View style={styles.colorGrid}>
+                  {COLORS.map((color) => (
+                    <TouchableOpacity
+                      key={color}
+                      style={[
+                        styles.colorCircle,
+                        { backgroundColor: color },
+                        selectedColor === color && {
+                          borderWidth: 3,
+                          borderColor: colors.text
+                        }
+                      ]}
+                      onPress={() => setSelectedColor(color)}
+                    />
+                  ))}
+                </View>
+              </ScrollView>
 
-          {/* ERROR MESSAGE MODAL */}
-          <Modal
-            visible={!!errorMessage}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setErrorMessage(null)}
-          >
-            <TouchableOpacity
-              style={styles.errorOverlay}
-              activeOpacity={1}
-              onPress={() => setErrorMessage(null)}
-            >
-              <ThemedView style={[styles.errorCard, { backgroundColor: colors.card.background }]}>
-                <ThemedText style={styles.errorTitle}>Required Field</ThemedText>
-                <ThemedText style={styles.errorMessage}>{errorMessage}</ThemedText>
-                <ThemedButton style={styles.errorButton} onPress={() => setErrorMessage(null)}>
-                  OK
+              {/* FOOTER BUTTONS */}
+              <View style={styles.footerButtons}>
+                <ThemedButton style={[styles.footerBtn, styles.cancelBtn]} onPress={handleCancel}>
+                  Cancel
                 </ThemedButton>
-              </ThemedView>
-            </TouchableOpacity>
-          </Modal>
-        </View>
-      </TouchableWithoutFeedback>
-    </Modal>
+                <ThemedButton style={[styles.footerBtn, styles.saveBtn]} onPress={handleSave}>
+                  Save
+                </ThemedButton>
+              </View>
+            </ThemedView>
+
+            {/* START / END PICKERS */}
+            <DateTimePickerModal
+              isVisible={startPickerVisible}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              date={startDate}
+              onConfirm={handleStartConfirm}
+              onCancel={() => setStartPickerVisible(false)}
+            />
+            <DateTimePickerModal
+              isVisible={endPickerVisible}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              date={endDate || new Date()}
+              onConfirm={handleEndConfirm}
+              onCancel={() => setEndPickerVisible(false)}
+            />
+
+            {/* RECURRENCE SELECTION SHEET */}
+            <Modal
+              visible={showRecurrenceSheet}
+              transparent
+              animationType="slide"
+              onRequestClose={closeRecurrenceSheet}
+            >
+              <SafeAreaView style={styles.sheetBackdrop}>
+                <View style={[styles.sheetContainer, { backgroundColor: colors.card.background }]}>
+                  <ThemedText style={styles.sheetTitle}>Choose Recurrence</ThemedText>
+                  {(['once', 'daily', 'weekly', 'monthly', 'yearly', 'custom'] as RecurrenceType[]).map(
+                    (item) => (
+                      <TouchableOpacity
+                        key={item}
+                        style={styles.sheetItem}
+                        onPress={() => handleRecurrenceSelect(item)}
+                      >
+                        <ThemedText>
+                          {item.charAt(0).toUpperCase() + item.slice(1)}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    )
+                  )}
+                  <TouchableOpacity style={styles.sheetCancel} onPress={closeRecurrenceSheet}>
+                    <ThemedText style={{ color: '#FF3B30' }}>Cancel</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </SafeAreaView>
+            </Modal>
+
+            {/* CUSTOM INTERVAL MODAL */}
+            <CustomIntervalModal
+              visible={showCustomIntervalModal}
+              initialInterval={customInterval}
+              initialUnit={intervalUnit}
+              onCancel={handleCancelCustomInterval}
+              onSave={handleSaveCustomInterval}
+            />
+
+            {/* ERROR MESSAGE MODAL */}
+            <Modal
+              visible={!!errorMessage}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setErrorMessage(null)}
+            >
+              <TouchableOpacity
+                style={styles.errorOverlay}
+                activeOpacity={1}
+                onPress={() => setErrorMessage(null)}
+              >
+                <ThemedView style={[styles.errorCard, { backgroundColor: colors.card.background }]}>
+                  <ThemedText style={styles.errorTitle}>Required Field</ThemedText>
+                  <ThemedText style={styles.errorMessage}>{errorMessage}</ThemedText>
+                  <ThemedButton style={styles.errorButton} onPress={() => setErrorMessage(null)}>
+                    OK
+                  </ThemedButton>
+                </ThemedView>
+              </TouchableOpacity>
+            </Modal>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </>
   );
 }
 

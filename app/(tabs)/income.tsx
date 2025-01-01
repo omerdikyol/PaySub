@@ -139,6 +139,11 @@ function getOccurrencesInRange(income: IncomeItem, startDate: Date, endDate: Dat
   return occurrences;
 }
 
+// Add new type for currency totals
+type CurrencyTotal = {
+    [currency: string]: number;
+};
+
 export default function Income() {
   const { colors } = useTheme();
   const [incomeItems, setIncomeItems] = useState<IncomeItem[]>([]);
@@ -176,6 +181,14 @@ export default function Income() {
 
   const totalIncome = useMemo(() => {
       return monthOccurrences.reduce((sum, occurrence) => sum + occurrence.amount, 0);
+  }, [monthOccurrences]);
+
+  const totalIncomeByCurrency = useMemo(() => {
+    return monthOccurrences.reduce((totals, occurrence) => {
+        const currency = occurrence.originalIncome.currency;
+        totals[currency] = (totals[currency] || 0) + occurrence.amount;
+        return totals;
+    }, {} as CurrencyTotal);
   }, [monthOccurrences]);
 
   const filteredOccurrences = useMemo(() => {
@@ -366,14 +379,18 @@ export default function Income() {
 
   // -- List Header (search + total) --
   const renderListHeader = () => {
+    const totalString = Object.entries(totalIncomeByCurrency)
+        .map(([currency, amount]) => formatCurrency(amount, currency))
+        .join(' + ');
+
     return (
-      <View style={[styles.listHeader, { backgroundColor: colors.background }]}>
-        <View style={styles.totalContainer}>
-          <ThemedText style={styles.totalText}>
-            Total: {formatCurrency(totalIncome)}
-          </ThemedText>
+        <View style={[styles.listHeader, { backgroundColor: colors.background }]}>
+            <View style={styles.totalContainer}>
+                <ThemedText style={styles.totalText}>
+                    Total: {totalString}
+                </ThemedText>
+            </View>
         </View>
-      </View>
     );
   };
 
