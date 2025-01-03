@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { ThemeProvider as CustomThemeProvider } from '@/context/ThemeContext';
 import { FinanceProvider } from '@/context/FinanceContext';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -43,9 +44,13 @@ export default function RootLayout() {
   }
 
   return (
-    <FinanceProvider>
-      <RootLayoutNav />
-    </FinanceProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+        <FinanceProvider>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          </Stack>
+        </FinanceProvider>
+    </GestureHandlerRootView>
   );
 }
 

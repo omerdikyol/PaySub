@@ -57,7 +57,8 @@ const Colors = {
     card: {
       background: '#ffffff',
       shadow: '#000000',
-      title: '#666666'
+      title: '#666666',
+      subtle: '#f0f0f0'
     }
   },
   dark: {
@@ -74,7 +75,8 @@ const Colors = {
     card: {
       background: '#1e1e1e',
       shadow: '#ffffff',
-      title: '#888888'
+      title: '#888888',
+      subtle: '#1a1a1a'
     }
   }
 };

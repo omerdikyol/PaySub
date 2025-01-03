@@ -16,7 +16,7 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { CustomIntervalModal } from './CustomIntervalModal';
 import { IncomeItem, RecurrenceType } from '@/types/income';
 import { parseCurrencyInput } from '@/utils/currency';
-import { CurrencyInput } from './CurrencyInput';
+import { CurrencyInput } from '../CurrencyInput';
 import { FontAwesome } from '@expo/vector-icons';
 
 const COLORS = [

@@ -1,26 +1,22 @@
-type RecurrenceType = 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+export type RecurrenceType = 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 type IntervalUnit = 'day' | 'month';
 
-type Occurrence = {
-    date: string; // ISO string date
-    amount: number;
+export type IncomeItem = {
+  id: string;
+  amount: number;
+  currency: string;
+  name: string;
+  startDate: string;
+  color: string;
+  recurrence: {
+    type: RecurrenceType;
+    interval?: number;
+    intervalUnit?: IntervalUnit;
+    endDate?: string;
+  };
 };
 
-type IncomeItem = {
-    id: string;
-    amount: number;
-    currency: string;
-    name: string;
-    startDate: string;
-    color: string;
-    recurrence: {
-        type: RecurrenceType;
-        interval?: number;
-        endDate?: string;
-        intervalUnit?: IntervalUnit; 
-    };
+export type Occurrence = {
+  date: string;
+  amount: number;
 };
-
-export type { RecurrenceType, Occurrence };
-export { IncomeItem };
-export default IncomeItem;

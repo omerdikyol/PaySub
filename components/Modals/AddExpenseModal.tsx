@@ -10,16 +10,16 @@ import {
   Keyboard,
   SafeAreaView
 } from 'react-native';
-import { ThemedView, ThemedText, ThemedButton, ThemedInput } from '../components/Themed';
-import { useTheme } from '../components/useTheme';
+import { ThemedView, ThemedText, ThemedButton, ThemedInput } from '../Themed';
+import { useTheme } from '../useTheme';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { CustomIntervalModal } from './CustomIntervalModal';
-import { ExpenseItem, RecurrenceType } from '../app/types/expense';
-import { parseCurrencyInput } from '../utils/currency';
-import { CurrencyInput } from './CurrencyInput';
+import { ExpenseItem, RecurrenceType } from '../../app/types/expense';
+import { parseCurrencyInput } from '../../utils/currency';
+import { CurrencyInput } from '../CurrencyInput';
 import { FontAwesome } from '@expo/vector-icons';
 import { ServiceSelectionModal } from './ServiceSelectionModal';
-import { SubscriptionService } from '../app/types/service';
+import { SubscriptionService } from '../../app/types/service';
 
 const COLORS = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',

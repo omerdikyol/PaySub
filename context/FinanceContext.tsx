@@ -25,7 +25,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       ...income,
       id: Date.now().toString(),
     };
-    setIncomes(prev => [...prev, newIncome]);
+    setIncomes(prev => {
+      const updated = [...prev, newIncome];
+      return updated;
+    });
   }, []);
 
   const addExpense = useCallback((expense: Omit<ExpenseItem, 'id'>) => {
