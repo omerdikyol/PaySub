@@ -8,7 +8,9 @@ import {
   TouchableWithoutFeedback,
   Platform,
   Keyboard,
-  SafeAreaView
+  SafeAreaView,
+  Switch,
+  TextInput
 } from 'react-native';
 import { ThemedView, ThemedText, ThemedButton, ThemedInput } from '../Themed';
 import { useTheme } from '../useTheme';
@@ -20,6 +22,8 @@ import { CurrencyInput } from '../CurrencyInput';
 import { FontAwesome } from '@expo/vector-icons';
 import { ServiceSelectionModal } from './ServiceSelectionModal';
 import { SubscriptionService } from '../../app/types/service';
+import { NotificationSettings } from '../../app/types/notification';
+import { NotificationService } from '../../services/NotificationService';
 
 const COLORS = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
@@ -70,6 +74,19 @@ export function AddExpenseModal({
   const [showServiceSelection, setShowServiceSelection] = useState(true);
   const [selectedService, setSelectedService] = useState<SubscriptionService | null>(null);
   const [customServiceName, setCustomServiceName] = useState('');
+
+  // Notification settings
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
+    enabled: true,
+    daysInAdvance: 1,
+    time: {
+      hour: 12,
+      minute: 30
+    }
+  });
+
+  // Add a new state for time picker
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
 
   // Update price handling functions
   const formatPriceForDisplay = (price: number): string => {
@@ -172,7 +189,7 @@ export function AddExpenseModal({
     }
 
     // Construct new/updated expense
-    onSave({
+    const expenseData = {
       amount: numericAmount,
       currency,
       name,
@@ -189,8 +206,24 @@ export function AddExpenseModal({
         name: selectedService.name,
         logo: selectedService.logo,
         customName: customServiceName || undefined
-      } : undefined
-    });
+      } : undefined,
+      notification: notificationSettings,
+      paymentHistory: initialExpense?.paymentHistory || {}
+    };
+
+    // Schedule notification if enabled
+    if (notificationSettings.enabled) {
+      NotificationService.requestPermissions().then(hasPermission => {
+        if (hasPermission) {
+          NotificationService.scheduleExpenseNotification({
+            ...expenseData,
+            id: initialExpense?.id || Date.now().toString()
+          });
+        }
+      });
+    }
+
+    onSave(expenseData);
 
     resetForm();
     onClose();
@@ -250,6 +283,18 @@ export function AddExpenseModal({
     setIntervalUnit(unit);
     setRecurrenceType('custom');
     setShowCustomIntervalModal(false);
+  };
+
+  // Add this handler for time selection
+  const handleTimeConfirm = (date: Date) => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      time: {
+        hour: date.getHours(),
+        minute: date.getMinutes()
+      }
+    }));
+    setTimePickerVisible(false);
   };
 
   // Layout
@@ -378,6 +423,113 @@ export function AddExpenseModal({
                   <FontAwesome name="chevron-down" size={12} color={colors.text} />
                 </TouchableOpacity>
 
+                {/* Notifications */}
+                <View style={[styles.notificationSection, { 
+                  backgroundColor: colors.card.background,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  padding: 16
+                }]}>
+                  {/* Enable/Disable Switch */}
+                  <View style={[styles.notificationRow, { 
+                    backgroundColor: colors.card.background,
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 8
+                  }]}>
+                    <View style={styles.notificationLabelContainer}>
+                      <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                        <FontAwesome 
+                          name={notificationSettings.enabled ? "bell" : "bell-slash"} 
+                          size={16} 
+                          color={colors.primary} 
+                        />
+                      </View>
+                      <View>
+                        <ThemedText style={styles.notificationTitle}>Notifications</ThemedText>
+                        <ThemedText style={styles.notificationSubtitle}>
+                          {notificationSettings.enabled ? 'Enabled' : 'Disabled'}
+                        </ThemedText>
+                      </View>
+                    </View>
+                    <Switch
+                      value={notificationSettings.enabled}
+                      onValueChange={(enabled) => setNotificationSettings(prev => ({ ...prev, enabled }))}
+                      trackColor={{ false: '#767577', true: colors.primary }}
+                      thumbColor="#ffffff"
+                      ios_backgroundColor="#767577"
+                    />
+                  </View>
+
+                  {notificationSettings.enabled && (
+                    <>
+                      {/* Days in advance input */}
+                      <View style={[styles.notificationRow, { marginBottom: 0 }]}>
+                        <View style={styles.notificationLabelContainer}>
+                          <FontAwesome name="calendar" size={18} color={colors.text} />
+                          <ThemedText style={styles.notificationLabel}>Days before</ThemedText>
+                        </View>
+                        <View style={[styles.daysInputContainer, { backgroundColor: colors.card.background }]}>
+                          <TouchableOpacity 
+                            style={[styles.dayStepperButton, { 
+                              borderColor: colors.border,
+                              backgroundColor: colors.card.background
+                            }]}
+                            onPress={() => {
+                              setNotificationSettings(prev => ({
+                                ...prev,
+                                daysInAdvance: Math.max(0, prev.daysInAdvance - 1)
+                              }));
+                            }}
+                          >
+                            <ThemedText style={styles.stepperText}>-</ThemedText>
+                          </TouchableOpacity>
+                          
+                          <ThemedText style={styles.daysValue}>
+                            {notificationSettings.daysInAdvance}
+                          </ThemedText>
+                          
+                          <TouchableOpacity 
+                            style={[styles.dayStepperButton, { 
+                              borderColor: colors.border,
+                              backgroundColor: colors.card.background
+                            }]}
+                            onPress={() => {
+                              setNotificationSettings(prev => ({
+                                ...prev,
+                                daysInAdvance: Math.min(30, prev.daysInAdvance + 1)
+                              }));
+                            }}
+                          >
+                            <ThemedText style={styles.stepperText}>+</ThemedText>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      {/* Time picker */}
+                      <View style={[styles.notificationRow, { marginBottom: 0 }]}>
+                        <View style={styles.notificationLabelContainer}>
+                          <FontAwesome name="clock-o" size={18} color={colors.text} />
+                          <ThemedText style={styles.notificationLabel}>Notification time</ThemedText>
+                        </View>
+                        <TouchableOpacity
+                          style={[styles.timeButton, { 
+                            backgroundColor: colors.card.background,
+                            borderColor: colors.border,
+                            borderWidth: 1
+                          }]}
+                          onPress={() => setTimePickerVisible(true)}
+                        >
+                          <ThemedText>
+                            {`${notificationSettings.time.hour.toString().padStart(2, '0')}:${notificationSettings.time.minute.toString().padStart(2, '0')}`}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+                </View>
+
                 {/* COLOR PICKER */}
                 <ThemedText style={[styles.label, { marginTop: 16 }]}>Color</ThemedText>
                 <View style={styles.colorGrid}>
@@ -487,6 +639,16 @@ export function AddExpenseModal({
                 </ThemedView>
               </TouchableOpacity>
             </Modal>
+
+            {/* Add separate time picker modal */}
+            <DateTimePickerModal
+              isVisible={timePickerVisible}
+              mode="time"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              date={new Date(new Date().setHours(notificationSettings.time.hour, notificationSettings.time.minute))}
+              onConfirm={handleTimeConfirm}
+              onCancel={() => setTimePickerVisible(false)}
+            />
           </View>
         </TouchableWithoutFeedback>
       </Modal>
@@ -647,5 +809,80 @@ const styles = StyleSheet.create({
   },
   errorButton: {
     alignSelf: 'flex-end'
-  }
+  },
+
+  // Notifications
+  notificationSection: {
+    marginTop: 8,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  notificationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  notificationLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  notificationLabel: {
+    fontSize: 15,
+  },
+  daysInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 20,
+    padding: 4,
+  },
+  dayStepperButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepperText: {
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  daysValue: {
+    fontSize: 16,
+    fontWeight: '500',
+    minWidth: 24,
+    textAlign: 'center',
+  },
+  timeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  notificationSubtitle: {
+    fontSize: 13,
+    opacity: 0.6,
+  },
 });

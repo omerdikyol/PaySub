@@ -25,8 +25,8 @@ type ExpenseItem = {
         endDate?: string;
         intervalUnit?: IntervalUnit;
     };
-    // Track payment status for each occurrence
-    paymentHistory: Record<string, PaymentStatus>; // Key is ISO date string
+    notification?: NotificationSettings;
+    paymentHistory: Record<string, PaymentStatus>;
     service?: {
         id: string;
         name: string;
