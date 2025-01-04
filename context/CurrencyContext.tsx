@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { convertCurrency } from '@/utils/exchangeRates';
+import { formatCurrency } from '@/utils/currency';
 
 interface CurrencyContextType {
   preferredCurrency: string;
@@ -63,10 +64,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   };
 
   const formatInPreferredCurrency = (amount: number): string => {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: preferredCurrency,
-    }).format(amount);
+    return formatCurrency(amount, preferredCurrency);
   };
 
   return (

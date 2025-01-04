@@ -145,12 +145,18 @@ export function numericToDisplay(numericValue: number, currencyConfig: Currency)
 }
 
 export function formatCurrency(amount: number, currency: string = 'TRY'): string {
+  const currencyConfig = currencies[currency];
+  
   // Format with thousand separators and proper decimal places
   const formatted = amount.toLocaleString('tr-TR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return `${formatted} ${currency}`;
+
+  // Add symbol based on position
+  return currencyConfig.position === 'before'
+    ? `${currencyConfig.symbol}${formatted}`
+    : `${formatted}${currencyConfig.symbol}`;
 }
 
 export function parseCurrencyInput(input: string): number {

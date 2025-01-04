@@ -14,7 +14,7 @@ import { ThemedView, ThemedText, ThemedButton, ThemedInput } from '@/components/
 import { useTheme } from '@/components/useTheme';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { CustomIntervalModal } from './CustomIntervalModal';
-import { IncomeItem, RecurrenceType } from '@/types/income';
+import { IncomeItem, RecurrenceType } from '@/app/types/income';
 import { currencies, displayToNumeric } from '@/utils/currency';
 import { CurrencyInput } from '../CurrencyInput';
 import { FontAwesome } from '@expo/vector-icons';
@@ -43,7 +43,7 @@ export function AddIncomeModal({
   const { colors } = useTheme();
 
   // Fields
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState('0,00');
   const [currency, setCurrency] = useState('TRY');
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState(new Date());
@@ -140,7 +140,7 @@ export function AddIncomeModal({
   };
 
   const resetForm = () => {
-    setAmount('');
+    setAmount('0,00');
     setCurrency('TRY');
     setName('');
     setStartDate(new Date());
@@ -215,111 +215,202 @@ export function AddIncomeModal({
               keyboardShouldPersistTaps="handled"
             >
               {/* AMOUNT + CURRENCY */}
-              <CurrencyInput
-                value={amount}
-                onChange={setAmount}
-                currency={currency}
-                onCurrencyChange={setCurrency}
-              />
-
-              {/* NAME */}
-              <ThemedInput
-                label="Name"
-                value={name}
-                onChangeText={setName}
-                placeholder="Enter income name"
-                style={styles.input}
-              />
-
-              {/* DATE FIELDS */}
-              <View style={styles.dateRow}>
-                {/* START DATE */}
-                <View style={styles.dateCol}>
-                  <ThemedText style={styles.label}>Start Date</ThemedText>
-                  <TouchableOpacity
-                    style={[styles.dateButton, { borderColor: colors.border }]}
-                    onPress={() => setStartPickerVisible(true)}
-                  >
-                    <ThemedText>{startDate.toLocaleDateString()}</ThemedText>
-                  </TouchableOpacity>
-                </View>
-
-                {/* END DATE (optional for recurring) */}
-                {recurrenceType !== 'once' && (
-                  <View style={styles.dateCol}>
-                    <ThemedText style={styles.label}>End Date</ThemedText>
-                    {endDate ? (
-                      <>
-                        <TouchableOpacity
-                          style={[styles.dateButton, { borderColor: colors.border }]}
-                          onPress={() => setEndPickerVisible(true)}
-                        >
-                          <ThemedText>{endDate.toLocaleDateString()}</ThemedText>
-                        </TouchableOpacity>
-                        <ThemedButton
-                          style={styles.clearButton}
-                          onPress={() => setEndDate(null)}
-                        >
-                          Clear
-                        </ThemedButton>
-                      </>
-                    ) : (
-                      <ThemedButton
-                        style={styles.endButton}
-                        onPress={() => {
-                          setEndPickerVisible(true);
-                          if (!endDate) setEndDate(new Date());
-                        }}
-                      >
-                        Set End Date
-                      </ThemedButton>
-                    )}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionLabelContainer}>
+                    <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                      <FontAwesome name="money" size={16} color={colors.primary} />
+                    </View>
+                    <View>
+                      <ThemedText style={styles.sectionTitle}>Amount</ThemedText>
+                      <ThemedText style={styles.sectionSubtitle}>Enter income amount and currency</ThemedText>
+                    </View>
                   </View>
-                )}
+                </View>
+                <View style={styles.sectionContent}>
+                  <CurrencyInput
+                    value={amount}
+                    onChange={setAmount}
+                    currency={currency}
+                    onCurrencyChange={setCurrency}
+                  />
+                </View>
               </View>
 
-              {/* RECURRENCE */}
-              <ThemedText style={styles.label}>Recurrence</ThemedText>
-              <TouchableOpacity
-                style={[styles.recurrenceButton, { borderColor: colors.border }]}
-                onPress={openRecurrenceSheet}
-              >
-                <ThemedText>
-                  {recurrenceType === 'custom'
-                    ? `Custom: every ${customInterval} ${
-                        intervalUnit === 'day' ? 'days' : 'months'
-                      }`
-                    : recurrenceType.charAt(0).toUpperCase() + recurrenceType.slice(1)}
-                </ThemedText>
-                <FontAwesome name="chevron-down" size={12} color={colors.text} />
-              </TouchableOpacity>
+              <View style={styles.divider} />
 
-              {/* COLOR PICKER */}
-              <ThemedText style={[styles.label, { marginTop: 16 }]}>Color</ThemedText>
-              <View style={styles.colorGrid}>
-                {COLORS.map((color) => (
-                  <TouchableOpacity
-                    key={color}
-                    style={[
-                      styles.colorCircle,
-                      { backgroundColor: color },
-                      selectedColor === color && {
-                        borderWidth: 3,
-                        borderColor: colors.text
-                      }
-                    ]}
-                    onPress={() => setSelectedColor(color)}
+              {/* NAME */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionLabelContainer}>
+                    <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                      <FontAwesome name="tag" size={16} color={colors.primary} />
+                    </View>
+                    <View>
+                      <ThemedText style={styles.sectionTitle}>Name</ThemedText>
+                      <ThemedText style={styles.sectionSubtitle}>Give your income a name</ThemedText>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.sectionContent}>
+                  <ThemedInput
+                    label=""
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="Enter income name"
+                    style={[styles.input, { marginBottom: 0 }]}
                   />
-                ))}
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              {/* RECURRENCE */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionLabelContainer}>
+                    <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                      <FontAwesome name="repeat" size={16} color={colors.primary} />
+                    </View>
+                    <View>
+                      <ThemedText style={styles.sectionTitle}>Recurrence</ThemedText>
+                      <ThemedText style={styles.sectionSubtitle}>How often this income repeats</ThemedText>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.sectionContent}>
+                  <TouchableOpacity
+                    style={[styles.recurrenceButton, { borderColor: colors.border }]}
+                    onPress={openRecurrenceSheet}
+                  >
+                    <ThemedText style={styles.recurrenceText}>
+                      {recurrenceType === 'custom'
+                        ? `Custom: every ${customInterval} ${
+                            intervalUnit === 'day' ? 'days' : 'months'
+                          }`
+                        : recurrenceType.charAt(0).toUpperCase() + recurrenceType.slice(1)}
+                    </ThemedText>
+                    <FontAwesome name="chevron-down" size={12} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              {/* DATE FIELDS */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionLabelContainer}>
+                    <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                      <FontAwesome name="calendar" size={16} color={colors.primary} />
+                    </View>
+                    <View>
+                      <ThemedText style={styles.sectionTitle}>Dates</ThemedText>
+                      <ThemedText style={styles.sectionSubtitle}>Set start and end dates</ThemedText>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.sectionContent}>
+                  <View style={styles.dateRow}>
+                    {/* START DATE */}
+                    <View style={styles.dateCol}>
+                      <ThemedText style={styles.label}>Start Date</ThemedText>
+                      <TouchableOpacity
+                        style={[styles.dateButton, { borderColor: colors.border }]}
+                        onPress={() => setStartPickerVisible(true)}
+                      >
+                        <ThemedText style={styles.dateText}>{startDate.toLocaleDateString()}</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* END DATE (optional for recurring) */}
+                    {recurrenceType !== 'once' && (
+                      <View style={styles.dateCol}>
+                        <ThemedText style={styles.label}>End Date</ThemedText>
+                        {endDate ? (
+                          <>
+                            <TouchableOpacity
+                              style={[styles.dateButton, { borderColor: colors.border }]}
+                              onPress={() => setEndPickerVisible(true)}
+                            >
+                              <ThemedText style={styles.dateText}>{endDate.toLocaleDateString()}</ThemedText>
+                            </TouchableOpacity>
+                            <ThemedButton
+                              style={styles.clearButton}
+                              textStyle={styles.buttonText}
+                              onPress={() => setEndDate(null)}
+                            >
+                              Clear
+                            </ThemedButton>
+                          </>
+                        ) : (
+                          <ThemedButton
+                            style={styles.endButton}
+                            textStyle={styles.buttonText}
+                            onPress={() => {
+                              setEndPickerVisible(true);
+                              if (!endDate) setEndDate(new Date());
+                            }}
+                          >
+                            Set End Date
+                          </ThemedButton>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              {/* COLOR */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionLabelContainer}>
+                    <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                      <FontAwesome name="paint-brush" size={16} color={colors.primary} />
+                    </View>
+                    <View>
+                      <ThemedText style={styles.sectionTitle}>Color</ThemedText>
+                      <ThemedText style={styles.sectionSubtitle}>Choose a color for this income</ThemedText>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.sectionContent}>
+                  <View style={styles.colorGrid}>
+                    {COLORS.map((color) => (
+                      <TouchableOpacity
+                        key={color}
+                        style={[
+                          styles.colorCircle,
+                          { backgroundColor: color },
+                          selectedColor === color && {
+                            borderWidth: 3,
+                            borderColor: colors.text
+                          }
+                        ]}
+                        onPress={() => setSelectedColor(color)}
+                      />
+                    ))}
+                  </View>
+                </View>
               </View>
             </ScrollView>
 
             {/* FOOTER BUTTONS */}
             <View style={styles.footerButtons}>
-              <ThemedButton style={[styles.footerBtn, styles.cancelBtn]} onPress={handleCancel}>
+              <ThemedButton 
+                style={[styles.footerBtn, styles.cancelBtn]} 
+                textStyle={styles.buttonText}
+                onPress={handleCancel}
+              >
                 Cancel
               </ThemedButton>
-              <ThemedButton style={[styles.footerBtn, styles.saveBtn]} onPress={handleSave}>
+              <ThemedButton 
+                style={[styles.footerBtn, styles.saveBtn]}
+                textStyle={styles.buttonText}
+                onPress={handleSave}
+              >
                 Save
               </ThemedButton>
             </View>
@@ -360,7 +451,7 @@ export function AddIncomeModal({
                       style={styles.sheetItem}
                       onPress={() => handleRecurrenceSelect(item)}
                     >
-                      <ThemedText>
+                      <ThemedText style={styles.recurrenceItemText}>
                         {item.charAt(0).toUpperCase() + item.slice(1)}
                       </ThemedText>
                     </TouchableOpacity>
@@ -397,7 +488,11 @@ export function AddIncomeModal({
               <ThemedView style={[styles.errorCard, { backgroundColor: colors.card.background }]}>
                 <ThemedText style={styles.errorTitle}>Required Field</ThemedText>
                 <ThemedText style={styles.errorMessage}>{errorMessage}</ThemedText>
-                <ThemedButton style={styles.errorButton} onPress={() => setErrorMessage(null)}>
+                <ThemedButton 
+                  style={styles.errorButton}
+                  textStyle={styles.buttonText}
+                  onPress={() => setErrorMessage(null)}
+                >
                   OK
                 </ThemedButton>
               </ThemedView>
@@ -446,6 +541,47 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     marginBottom: 5
+  },
+
+  // Section styles
+  section: {
+    paddingVertical: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionContent: {
+    paddingHorizontal: 4,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    marginHorizontal: -16,
+  },
+  sectionLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    opacity: 0.6,
+  },
+
+  // Common components
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Date
@@ -562,5 +698,20 @@ const styles = StyleSheet.create({
   },
   errorButton: {
     alignSelf: 'flex-end'
-  }
+  },
+
+  // Text styles
+  buttonText: {
+    fontSize: 16,
+    color: '#fff',
+  },
+  recurrenceText: {
+    fontSize: 16,
+  },
+  dateText: {
+    fontSize: 16,
+  },
+  recurrenceItemText: {
+    fontSize: 16,
+  },
 });

@@ -328,112 +328,182 @@ export function AddExpenseModal({
                 keyboardShouldPersistTaps="handled"
               >
                 {/* AMOUNT + CURRENCY */}
-                <CurrencyInput
-                  value={amount}
-                  onChange={setAmount}
-                  currency={currency}
-                  onCurrencyChange={setCurrency}
-                />
-
-                {/* NAME */}
-                <ThemedInput
-                  label="Name"
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Enter expense name"
-                  style={styles.input}
-                />
-
-                {/* Add custom name input if service is selected */}
-                {selectedService && (
-                  <ThemedInput
-                    label="Custom Name (Optional)"
-                    value={customServiceName}
-                    onChangeText={setCustomServiceName}
-                    placeholder={`e.g., ${selectedService.name} Family`}
-                    style={styles.input}
-                  />
-                )}
-
-                {/* DATE FIELDS */}
-                <View style={styles.dateRow}>
-                  {/* START DATE */}
-                  <View style={styles.dateCol}>
-                    <ThemedText style={styles.label}>Start Date</ThemedText>
-                    <TouchableOpacity
-                      style={[styles.dateButton, { borderColor: colors.border }]}
-                      onPress={() => setStartPickerVisible(true)}
-                    >
-                      <ThemedText>{startDate.toLocaleDateString()}</ThemedText>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* END DATE (optional for recurring) */}
-                  {recurrenceType !== 'once' && (
-                    <View style={styles.dateCol}>
-                      <ThemedText style={styles.label}>End Date</ThemedText>
-                      {endDate ? (
-                        <>
-                          <TouchableOpacity
-                            style={[styles.dateButton, { borderColor: colors.border }]}
-                            onPress={() => setEndPickerVisible(true)}
-                          >
-                            <ThemedText>{endDate.toLocaleDateString()}</ThemedText>
-                          </TouchableOpacity>
-                          <ThemedButton
-                            style={styles.clearButton}
-                            onPress={() => setEndDate(null)}
-                          >
-                            Clear
-                          </ThemedButton>
-                        </>
-                      ) : (
-                        <ThemedButton
-                          style={styles.endButton}
-                          onPress={() => {
-                            setEndPickerVisible(true);
-                            if (!endDate) setEndDate(new Date());
-                          }}
-                        >
-                          Set End Date
-                        </ThemedButton>
-                      )}
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionLabelContainer}>
+                      <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                        <FontAwesome name="money" size={16} color={colors.primary} />
+                      </View>
+                      <View>
+                        <ThemedText style={styles.sectionTitle}>Amount</ThemedText>
+                        <ThemedText style={styles.sectionSubtitle}>Enter expense amount and currency</ThemedText>
+                      </View>
                     </View>
-                  )}
+                  </View>
+                  <View style={styles.sectionContent}>
+                    <CurrencyInput
+                      value={amount}
+                      onChange={setAmount}
+                      currency={currency}
+                      onCurrencyChange={setCurrency}
+                    />
+                  </View>
                 </View>
 
+                <View style={styles.divider} />
+
+                {/* NAME + CUSTOM NAME */}
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionLabelContainer}>
+                      <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                        <FontAwesome name="tag" size={16} color={colors.primary} />
+                      </View>
+                      <View>
+                        <ThemedText style={styles.sectionTitle}>Name</ThemedText>
+                        <ThemedText style={styles.sectionSubtitle}>
+                          {selectedService ? 'Name and customize your subscription' : 'Give your expense a name'}
+                        </ThemedText>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.sectionContent}>
+                    <View style={{ gap: 12 }}>
+                      <View>
+                        <ThemedInput
+                          label=""
+                          value={name}
+                          onChangeText={setName}
+                          placeholder="Enter expense name"
+                          style={[styles.input, { marginBottom: 0 }]}
+                        />
+                      </View>
+                      {selectedService && (
+                        <View>
+                          <View style={styles.customNameLabelContainer}>
+                            <ThemedText style={styles.inputLabel}>Custom Name</ThemedText>
+                            <ThemedText style={styles.optionalText}>(optional)</ThemedText>
+                          </View>
+                          <ThemedText style={styles.customNameHint}>
+                            Add a custom name to personalize this subscription
+                          </ThemedText>
+                          <ThemedInput
+                            label=""
+                            value={customServiceName}
+                            onChangeText={setCustomServiceName}
+                            placeholder={`e.g., ${selectedService.name} Family`}
+                            style={[styles.input, { marginBottom: 0 }]}
+                          />
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
                 {/* RECURRENCE */}
-                <ThemedText style={styles.label}>Recurrence</ThemedText>
-                <TouchableOpacity
-                  style={[styles.recurrenceButton, { borderColor: colors.border }]}
-                  onPress={openRecurrenceSheet}
-                >
-                  <ThemedText>
-                    {recurrenceType === 'custom'
-                      ? `Custom: every ${customInterval} ${
-                          intervalUnit === 'day' ? 'days' : 'months'
-                        }`
-                      : recurrenceType.charAt(0).toUpperCase() + recurrenceType.slice(1)}
-                  </ThemedText>
-                  <FontAwesome name="chevron-down" size={12} color={colors.text} />
-                </TouchableOpacity>
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionLabelContainer}>
+                      <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                        <FontAwesome name="repeat" size={16} color={colors.primary} />
+                      </View>
+                      <View>
+                        <ThemedText style={styles.sectionTitle}>Recurrence</ThemedText>
+                        <ThemedText style={styles.sectionSubtitle}>How often this expense repeats</ThemedText>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.sectionContent}>
+                    <TouchableOpacity
+                      style={[styles.recurrenceButton, { borderColor: colors.border }]}
+                      onPress={openRecurrenceSheet}
+                    >
+                      <ThemedText style={styles.recurrenceText}>
+                        {recurrenceType === 'custom'
+                          ? `Custom: every ${customInterval} ${
+                              intervalUnit === 'day' ? 'days' : 'months'
+                            }`
+                          : recurrenceType.charAt(0).toUpperCase() + recurrenceType.slice(1)}
+                      </ThemedText>
+                      <FontAwesome name="chevron-down" size={12} color={colors.text} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                {/* DATE FIELDS */}
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionLabelContainer}>
+                      <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                        <FontAwesome name="calendar" size={16} color={colors.primary} />
+                      </View>
+                      <View>
+                        <ThemedText style={styles.sectionTitle}>Dates</ThemedText>
+                        <ThemedText style={styles.sectionSubtitle}>Set start and end dates</ThemedText>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.sectionContent}>
+                    <View style={styles.dateRow}>
+                      {/* START DATE */}
+                      <View style={styles.dateCol}>
+                        <ThemedText style={styles.label}>Start Date</ThemedText>
+                        <TouchableOpacity
+                          style={[styles.dateButton, { borderColor: colors.border }]}
+                          onPress={() => setStartPickerVisible(true)}
+                        >
+                          <ThemedText style={styles.dateText}>{startDate.toLocaleDateString()}</ThemedText>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* END DATE (optional for recurring) */}
+                      {recurrenceType !== 'once' && (
+                        <View style={styles.dateCol}>
+                          <ThemedText style={styles.label}>End Date</ThemedText>
+                          {endDate ? (
+                            <>
+                              <TouchableOpacity
+                                style={[styles.dateButton, { borderColor: colors.border }]}
+                                onPress={() => setEndPickerVisible(true)}
+                              >
+                                <ThemedText style={styles.dateText}>{endDate.toLocaleDateString()}</ThemedText>
+                              </TouchableOpacity>
+                              <ThemedButton
+                                style={styles.clearButton}
+                                textStyle={styles.buttonText}
+                                onPress={() => setEndDate(null)}
+                              >
+                                Clear
+                              </ThemedButton>
+                            </>
+                          ) : (
+                            <ThemedButton
+                              style={styles.endButton}
+                              textStyle={styles.buttonText}
+                              onPress={() => {
+                                setEndPickerVisible(true);
+                                if (!endDate) setEndDate(new Date());
+                              }}
+                            >
+                              Set End Date
+                            </ThemedButton>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
 
                 {/* Notifications */}
-                <View style={[styles.notificationSection, { 
-                  backgroundColor: colors.card.background,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  padding: 16
-                }]}>
-                  {/* Enable/Disable Switch */}
-                  <View style={[styles.notificationRow, { 
-                    backgroundColor: colors.card.background,
-                    borderRadius: 12,
-                    padding: 12,
-                    marginBottom: 8
-                  }]}>
-                    <View style={styles.notificationLabelContainer}>
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionLabelContainer}>
                       <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
                         <FontAwesome 
                           name={notificationSettings.enabled ? "bell" : "bell-slash"} 
@@ -442,115 +512,132 @@ export function AddExpenseModal({
                         />
                       </View>
                       <View>
-                        <ThemedText style={styles.notificationTitle}>Notifications</ThemedText>
-                        <ThemedText style={styles.notificationSubtitle}>
+                        <ThemedText style={styles.sectionTitle}>Notifications</ThemedText>
+                        <ThemedText style={styles.sectionSubtitle}>
                           {notificationSettings.enabled ? 'Enabled' : 'Disabled'}
                         </ThemedText>
                       </View>
                     </View>
-                    <Switch
-                      value={notificationSettings.enabled}
-                      onValueChange={(enabled) => setNotificationSettings(prev => ({ ...prev, enabled }))}
-                      trackColor={{ false: '#767577', true: colors.primary }}
-                      thumbColor="#ffffff"
-                      ios_backgroundColor="#767577"
-                    />
                   </View>
-
-                  {notificationSettings.enabled && (
-                    <>
-                      {/* Days in advance input */}
-                      <View style={[styles.notificationRow, { marginBottom: 0 }]}>
-                        <View style={styles.notificationLabelContainer}>
-                          <FontAwesome name="calendar" size={18} color={colors.text} />
-                          <ThemedText style={styles.notificationLabel}>Days before</ThemedText>
-                        </View>
-                        <View style={[styles.daysInputContainer, { backgroundColor: colors.card.background }]}>
-                          <TouchableOpacity 
-                            style={[styles.dayStepperButton, { 
-                              borderColor: colors.border,
-                              backgroundColor: colors.card.background
-                            }]}
-                            onPress={() => {
-                              setNotificationSettings(prev => ({
-                                ...prev,
-                                daysInAdvance: Math.max(0, prev.daysInAdvance - 1)
-                              }));
-                            }}
-                          >
-                            <ThemedText style={styles.stepperText}>-</ThemedText>
-                          </TouchableOpacity>
-                          
-                          <ThemedText style={styles.daysValue}>
-                            {notificationSettings.daysInAdvance}
-                          </ThemedText>
-                          
-                          <TouchableOpacity 
-                            style={[styles.dayStepperButton, { 
-                              borderColor: colors.border,
-                              backgroundColor: colors.card.background
-                            }]}
-                            onPress={() => {
-                              setNotificationSettings(prev => ({
-                                ...prev,
-                                daysInAdvance: Math.min(30, prev.daysInAdvance + 1)
-                              }));
-                            }}
-                          >
-                            <ThemedText style={styles.stepperText}>+</ThemedText>
-                          </TouchableOpacity>
-                        </View>
+                  <View style={styles.sectionContent}>
+                    <View style={[styles.notificationRow, { marginBottom: 0 }]}>
+                      <View style={styles.notificationLabelContainer}>
+                        <FontAwesome name="calendar" size={18} color={colors.text} />
+                        <ThemedText style={styles.notificationLabel}>Days before</ThemedText>
                       </View>
-
-                      {/* Time picker */}
-                      <View style={[styles.notificationRow, { marginBottom: 0 }]}>
-                        <View style={styles.notificationLabelContainer}>
-                          <FontAwesome name="clock-o" size={18} color={colors.text} />
-                          <ThemedText style={styles.notificationLabel}>Notification time</ThemedText>
-                        </View>
-                        <TouchableOpacity
-                          style={[styles.timeButton, { 
-                            backgroundColor: colors.card.background,
+                      <View style={[styles.daysInputContainer, { backgroundColor: colors.card.background }]}>
+                        <TouchableOpacity 
+                          style={[styles.dayStepperButton, { 
                             borderColor: colors.border,
-                            borderWidth: 1
+                            backgroundColor: colors.card.background
                           }]}
-                          onPress={() => setTimePickerVisible(true)}
+                          onPress={() => {
+                            setNotificationSettings(prev => ({
+                              ...prev,
+                              daysInAdvance: Math.max(0, prev.daysInAdvance - 1)
+                            }));
+                          }}
                         >
-                          <ThemedText>
-                            {`${notificationSettings.time.hour.toString().padStart(2, '0')}:${notificationSettings.time.minute.toString().padStart(2, '0')}`}
-                          </ThemedText>
+                          <ThemedText style={styles.stepperText}>-</ThemedText>
+                        </TouchableOpacity>
+                        
+                        <ThemedText style={styles.daysValue}>
+                          {notificationSettings.daysInAdvance}
+                        </ThemedText>
+                        
+                        <TouchableOpacity 
+                          style={[styles.dayStepperButton, { 
+                            borderColor: colors.border,
+                            backgroundColor: colors.card.background
+                          }]}
+                          onPress={() => {
+                            setNotificationSettings(prev => ({
+                              ...prev,
+                              daysInAdvance: Math.min(30, prev.daysInAdvance + 1)
+                            }));
+                          }}
+                        >
+                          <ThemedText style={styles.stepperText}>+</ThemedText>
                         </TouchableOpacity>
                       </View>
-                    </>
-                  )}
+                    </View>
+
+                    {notificationSettings.enabled && (
+                      <>
+                        {/* Time picker */}
+                        <View style={[styles.notificationRow, { marginBottom: 0 }]}>
+                          <View style={styles.notificationLabelContainer}>
+                            <FontAwesome name="clock-o" size={18} color={colors.text} />
+                            <ThemedText style={styles.notificationLabel}>Notification time</ThemedText>
+                          </View>
+                          <TouchableOpacity
+                            style={[styles.timeButton, { 
+                              backgroundColor: colors.card.background,
+                              borderColor: colors.border,
+                              borderWidth: 1
+                            }]}
+                            onPress={() => setTimePickerVisible(true)}
+                          >
+                            <ThemedText style={styles.timeText}>
+                              {`${notificationSettings.time.hour.toString().padStart(2, '0')}:${notificationSettings.time.minute.toString().padStart(2, '0')}`}
+                            </ThemedText>
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    )}
+                  </View>
                 </View>
 
-                {/* COLOR PICKER */}
-                <ThemedText style={[styles.label, { marginTop: 16 }]}>Color</ThemedText>
-                <View style={styles.colorGrid}>
-                  {COLORS.map((color) => (
-                    <TouchableOpacity
-                      key={color}
-                      style={[
-                        styles.colorCircle,
-                        { backgroundColor: color },
-                        selectedColor === color && {
-                          borderWidth: 3,
-                          borderColor: colors.text
-                        }
-                      ]}
-                      onPress={() => setSelectedColor(color)}
-                    />
-                  ))}
+                <View style={styles.divider} />
+
+                {/* COLOR */}
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionLabelContainer}>
+                      <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                        <FontAwesome name="paint-brush" size={16} color={colors.primary} />
+                      </View>
+                      <View>
+                        <ThemedText style={styles.sectionTitle}>Color</ThemedText>
+                        <ThemedText style={styles.sectionSubtitle}>Choose a color for this expense</ThemedText>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.sectionContent}>
+                    <View style={styles.colorGrid}>
+                      {COLORS.map((color) => (
+                        <TouchableOpacity
+                          key={color}
+                          style={[
+                            styles.colorCircle,
+                            { backgroundColor: color },
+                            selectedColor === color && {
+                              borderWidth: 3,
+                              borderColor: colors.text
+                            }
+                          ]}
+                          onPress={() => setSelectedColor(color)}
+                        />
+                      ))}
+                    </View>
+                  </View>
                 </View>
               </ScrollView>
 
               {/* FOOTER BUTTONS */}
               <View style={styles.footerButtons}>
-                <ThemedButton style={[styles.footerBtn, styles.cancelBtn]} onPress={handleCancel}>
+                <ThemedButton 
+                  style={[styles.footerBtn, styles.cancelBtn]} 
+                  textStyle={styles.buttonText}
+                  onPress={handleCancel}
+                >
                   Cancel
                 </ThemedButton>
-                <ThemedButton style={[styles.footerBtn, styles.saveBtn]} onPress={handleSave}>
+                <ThemedButton 
+                  style={[styles.footerBtn, styles.saveBtn]}
+                  textStyle={styles.buttonText}
+                  onPress={handleSave}
+                >
                   Save
                 </ThemedButton>
               </View>
@@ -591,7 +678,7 @@ export function AddExpenseModal({
                         style={styles.sheetItem}
                         onPress={() => handleRecurrenceSelect(item)}
                       >
-                        <ThemedText>
+                        <ThemedText style={styles.recurrenceItemText}>
                           {item.charAt(0).toUpperCase() + item.slice(1)}
                         </ThemedText>
                       </TouchableOpacity>
@@ -628,7 +715,11 @@ export function AddExpenseModal({
                 <ThemedView style={[styles.errorCard, { backgroundColor: colors.card.background }]}>
                   <ThemedText style={styles.errorTitle}>Required Field</ThemedText>
                   <ThemedText style={styles.errorMessage}>{errorMessage}</ThemedText>
-                  <ThemedButton style={styles.errorButton} onPress={() => setErrorMessage(null)}>
+                  <ThemedButton 
+                    style={styles.errorButton}
+                    textStyle={styles.buttonText}
+                    onPress={() => setErrorMessage(null)}
+                  >
                     OK
                   </ThemedButton>
                 </ThemedView>
@@ -865,13 +956,6 @@ const styles = StyleSheet.create({
     minWidth: 80,
     alignItems: 'center',
   },
-  iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   notificationTitle: {
     fontSize: 16,
     fontWeight: '600',
@@ -879,5 +963,85 @@ const styles = StyleSheet.create({
   notificationSubtitle: {
     fontSize: 13,
     opacity: 0.6,
+  },
+
+  // Section styles
+  section: {
+    paddingVertical: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionContent: {
+    paddingHorizontal: 4,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    marginHorizontal: -16,
+  },
+  sectionLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    opacity: 0.6,
+  },
+
+  // Common components
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonText: {
+    fontSize: 16,
+    color: '#fff',
+  },
+  recurrenceText: {
+    fontSize: 16,
+  },
+  normalText: {
+    fontSize: 16,
+  },
+  dateText: {
+    fontSize: 16,
+  },
+  timeText: {
+    fontSize: 16,
+  },
+  recurrenceItemText: {
+    fontSize: 16,
+  },
+
+  inputLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  customNameLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  optionalText: {
+    fontSize: 13,
+    opacity: 0.5,
+  },
+  customNameHint: {
+    fontSize: 12,
+    opacity: 0.5,
+    marginBottom: 4,
   },
 });
