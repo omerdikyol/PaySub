@@ -5,8 +5,8 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
-import { ThemeProvider as CustomThemeProvider } from '@/context/ThemeContext';
 import { FinanceProvider } from '@/context/FinanceContext';
+import { CurrencyProvider } from '@/context/CurrencyContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export {
@@ -45,11 +45,13 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-        <FinanceProvider>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack>
-        </FinanceProvider>
+        <CurrencyProvider>
+          <FinanceProvider>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            </Stack>
+          </FinanceProvider>
+        </CurrencyProvider>
     </GestureHandlerRootView>
   );
 }

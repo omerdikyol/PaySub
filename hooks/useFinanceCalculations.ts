@@ -3,7 +3,7 @@ import { ExpenseItem } from '@/app/types/expense';
 import { IncomeItem } from '@/app/types/income';
 import { getExpenseOccurrencesInRange } from '@/utils/expenseOccurrences';
 import { getIncomeOccurrencesInRange } from '@/utils/incomeOccurrences';
-import { useCurrencyConversion } from './useCurrencyConversion';
+import { useCurrency } from '@/context/CurrencyContext';
 
 type CurrencyTotal = {
   [currency: string]: number;
@@ -37,7 +37,7 @@ export function useFinanceCalculations(
     convertAmount,
     formatInPreferredCurrency,
     isLoading: isConverting
-  } = useCurrencyConversion();
+  } = useCurrency();
 
   const [convertedOccurrences, setConvertedOccurrences] = useState<ConvertedOccurrence[]>([]);
   const [isLoading, setIsLoading] = useState(true);

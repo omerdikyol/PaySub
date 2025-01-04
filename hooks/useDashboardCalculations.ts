@@ -3,7 +3,7 @@ import { getOccurrencesInRange } from '@/utils/occurrences';
 import { getExpenseOccurrencesInRange } from '@/utils/expenseOccurrences';
 import { ExpenseItem } from '@/app/types/expense';
 import { IncomeItem } from '@/app/types/income';
-import { useCurrencyConversion } from './useCurrencyConversion';
+import { useCurrency } from '@/context/CurrencyContext';
 
 export function useDashboardCalculations(
   incomes: IncomeItem[],
@@ -15,7 +15,7 @@ export function useDashboardCalculations(
     convertAmount,
     formatInPreferredCurrency,
     isLoading: isConverting
-  } = useCurrencyConversion();
+  } = useCurrency();
 
   // Calculate monthly totals with currency conversion
   const monthlyData = useMemo(async () => {
