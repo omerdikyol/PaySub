@@ -89,7 +89,7 @@ export const IncomeCard = ({
   const renderRightColumn = () => (
     <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
       <ThemedText style={{ fontSize: 16, fontWeight: '600' }}>
-        {formatCurrency(item.amount, item.currency)}
+        {formatCurrency(item.amount, item.originalIncome.currency)}
       </ThemedText>
     </View>
   );

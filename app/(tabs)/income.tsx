@@ -39,8 +39,11 @@ export default function Income() {
   const {
     monthOccurrences,
     totalByCurrency,
+    totalInPreferredCurrency,
     sortedOccurrences,
-    groupedOccurrences
+    groupedOccurrences,
+    preferredCurrency,
+    formatInPreferredCurrency,
   } = useFinanceCalculations(
     incomes,
     currentDate,
@@ -67,15 +70,16 @@ export default function Income() {
   } = useFinanceCRUD('income');
 
   const renderListHeader = () => {
-    const totalString = Object.entries(totalByCurrency)
-      .map(([currency, amount]) => formatCurrency(amount, currency))
-      .join(' + ');
-
     return (
       <View style={[styles.listHeader, { backgroundColor: colors.background }]}>
         <View style={styles.totalContainer}>
           <ThemedText style={styles.totalText}>
-            Total: {totalString}
+            Total: {formatInPreferredCurrency(totalInPreferredCurrency)}
+          </ThemedText>
+          <ThemedText style={styles.originalAmounts}>
+            {Object.entries(totalByCurrency)
+              .map(([currency, amount]) => formatCurrency(amount, currency))
+              .join(' + ')}
           </ThemedText>
         </View>
       </View>
@@ -200,5 +204,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'right'
+  },
+  originalAmounts: {
+    fontSize: 14,
+    opacity: 0.6,
+    textAlign: 'right',
+    marginTop: 4
   }
 });

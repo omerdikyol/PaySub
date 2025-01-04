@@ -1,15 +1,28 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ExpenseItem } from '@/app/types/expense';
 import { IncomeItem } from '@/app/types/income';
 import { getExpenseOccurrencesInRange } from '@/utils/expenseOccurrences';
 import { getIncomeOccurrencesInRange } from '@/utils/incomeOccurrences';
-
+import { useCurrencyConversion } from './useCurrencyConversion';
 
 type CurrencyTotal = {
   [currency: string]: number;
 };
 
 type FinanceItem = ExpenseItem | IncomeItem;
+
+type ConvertedOccurrence = {
+  id: string;
+  date: string;
+  name: string;
+  color: string;
+  amount: number;
+  originalAmount: number;
+  originalCurrency: string;
+  convertedAmount: number;
+  originalExpense?: ExpenseItem;
+  originalIncome?: IncomeItem;
+};
 
 export function useFinanceCalculations(
   items: FinanceItem[],
@@ -19,6 +32,16 @@ export function useFinanceCalculations(
   sortOrder: 'asc' | 'desc',
   isGrouped: boolean
 ) {
+  const {
+    preferredCurrency,
+    convertAmount,
+    formatInPreferredCurrency,
+    isLoading: isConverting
+  } = useCurrencyConversion();
+
+  const [convertedOccurrences, setConvertedOccurrences] = useState<ConvertedOccurrence[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   // Calculate occurrences for the current month
   const monthOccurrences = useMemo(() => {
     const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
@@ -26,36 +49,79 @@ export function useFinanceCalculations(
     monthEnd.setMilliseconds(-1);
     
     return items.flatMap(item => {
-        const occurrences = 'paymentHistory' in item
-          ? getExpenseOccurrencesInRange(item, monthStart, monthEnd)
-          : getIncomeOccurrencesInRange(item, monthStart, monthEnd);
-  
-        return occurrences.map(occurrence => ({
-          ...occurrence,
-          id: `${item.id}-${occurrence.date}`,
-          name: item.name,
-          color: item.color,
-          originalExpense: 'paymentHistory' in item ? item : undefined,
-          originalIncome: !('paymentHistory' in item) ? item : undefined
-        }));
-      }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    }, [items, currentDate]);
+      const occurrences = 'paymentHistory' in item
+        ? getExpenseOccurrencesInRange(item, monthStart, monthEnd)
+        : getIncomeOccurrencesInRange(item, monthStart, monthEnd);
 
-  // Calculate totals by currency
+      return occurrences.map(occurrence => ({
+        ...occurrence,
+        id: `${item.id}-${occurrence.date}`,
+        name: item.name,
+        color: item.color,
+        originalAmount: occurrence.amount,
+        originalCurrency: item.currency,
+        convertedAmount: 0, // Will be populated later
+        originalExpense: 'paymentHistory' in item ? item : undefined,
+        originalIncome: !('paymentHistory' in item) ? item : undefined
+      }));
+    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [items, currentDate]);
+
+  // Convert all amounts to preferred currency
+  useEffect(() => {
+    const convertOccurrences = async () => {
+      setIsLoading(true);
+      try {
+        const converted = await Promise.all(
+          monthOccurrences.map(async occurrence => ({
+            ...occurrence,
+            convertedAmount: await convertAmount(
+              occurrence.originalAmount,
+              occurrence.originalCurrency
+            )
+          }))
+        );
+        setConvertedOccurrences(converted);
+      } catch (error) {
+        console.error('Error converting occurrences:', error);
+        // On error, use original amounts
+        setConvertedOccurrences(
+          monthOccurrences.map(occurrence => ({
+            ...occurrence,
+            convertedAmount: occurrence.originalAmount
+          }))
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    convertOccurrences();
+  }, [monthOccurrences, preferredCurrency]);
+
+  // Calculate totals in preferred currency
+  const totalInPreferredCurrency = useMemo(() => {
+    return convertedOccurrences.reduce(
+      (total, occurrence) => total + occurrence.convertedAmount,
+      0
+    );
+  }, [convertedOccurrences]);
+
+  // Calculate totals by original currency
   const totalByCurrency = useMemo(() => {
     return monthOccurrences.reduce((totals, occurrence) => {
-      const currency = occurrence.originalExpense?.currency || occurrence.originalIncome?.currency;
-      totals[currency] = (totals[currency] || 0) + occurrence.amount;
+      const currency = occurrence.originalCurrency;
+      totals[currency] = (totals[currency] || 0) + occurrence.originalAmount;
       return totals;
     }, {} as CurrencyTotal);
   }, [monthOccurrences]);
 
   // Filter occurrences based on search
   const filteredOccurrences = useMemo(() => {
-    return monthOccurrences.filter(item => 
+    return convertedOccurrences.filter(item => 
       item.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [monthOccurrences, searchQuery]);
+  }, [convertedOccurrences, searchQuery]);
 
   // Sort filtered occurrences
   const sortedOccurrences = useMemo(() => {
@@ -67,8 +133,8 @@ export function useFinanceCalculations(
             : new Date(b.date).getTime() - new Date(a.date).getTime();
         case 'price':
           return sortOrder === 'asc' 
-            ? a.amount - b.amount
-            : b.amount - a.amount;
+            ? a.convertedAmount - b.convertedAmount
+            : b.convertedAmount - a.convertedAmount;
         case 'name':
           return sortOrder === 'asc' 
             ? a.name.localeCompare(b.name)
@@ -84,19 +150,22 @@ export function useFinanceCalculations(
     if (!isGrouped) return sortedOccurrences;
 
     const groups = sortedOccurrences.reduce((acc, curr) => {
-      const color = curr.originalExpense?.color || curr.originalIncome?.color;
+      const color = curr.color;
       if (!acc[color]) {
         acc[color] = {
           id: color,
           color: color,
-          amount: curr.amount,
+          name: curr.name,
+          originalAmount: curr.originalAmount,
+          originalCurrency: curr.originalCurrency,
+          convertedAmount: curr.convertedAmount,
           items: [curr],
           date: curr.date,
           originalExpense: curr.originalExpense,
           originalIncome: curr.originalIncome
         };
       } else {
-        acc[color].amount += curr.amount;
+        acc[color].convertedAmount += curr.convertedAmount;
         acc[color].items.push(curr);
       }
       return acc;
@@ -106,10 +175,14 @@ export function useFinanceCalculations(
   }, [sortedOccurrences, isGrouped]);
 
   return {
-    monthOccurrences,
+    monthOccurrences: convertedOccurrences,
     totalByCurrency,
+    totalInPreferredCurrency,
     filteredOccurrences,
     sortedOccurrences,
-    groupedOccurrences
+    groupedOccurrences,
+    preferredCurrency,
+    formatInPreferredCurrency,
+    isLoading: isLoading || isConverting
   };
 } 

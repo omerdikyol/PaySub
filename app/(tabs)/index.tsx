@@ -1,289 +1,36 @@
 import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
-import { ThemedView, ThemedText, ThemedCard, ThemedInput } from '@/components/Themed';
+import { ThemedView, ThemedText, ThemedCard } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
 import { ScreenLayout } from '@/components/ScreenLayout';
 import { MonthNavigation } from '@/components/MonthNavigation';
 import { ProgressBar } from '@/components/ProgressBar';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
-import { FontAwesome } from '@expo/vector-icons';
-import { useState, useMemo } from 'react';
-import { IncomeItem, Occurrence } from '@/app/types/income';
-import { ExpenseItem } from '@/app/types/expense';
-import { formatCurrency } from '@/utils/currency';
+import { useState, useEffect } from 'react';
 import { useFinance } from '@/context/FinanceContext';
 import { useRouter } from 'expo-router';
-
-function getOccurrencesInRange(income: IncomeItem, startDate: Date, endDate: Date): Occurrence[] {
-  const occurrences: Occurrence[] = [];
-  const start = new Date(income.startDate);
-  const recurrenceEnd = income.recurrence.endDate ? new Date(income.recurrence.endDate) : null;
-
-  // Helper function to get last day of month
-  const getLastDayOfMonth = (date: Date): number => {
-      return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-
-  // Helper function to get next occurrence date considering month lengths
-  const getNextDate = (currentDate: Date, type: string, interval: number = 1): Date => {
-      const nextDate = new Date(currentDate);
-      const originalDay = currentDate.getDate();
-      const currentLastDay = getLastDayOfMonth(currentDate);
-      const wasLastDay = originalDay === currentLastDay;
-      const originalWasHighDay = originalDay > 28; // Was 29, 30, or 31
-
-      switch (type) {
-          case 'daily':
-              nextDate.setDate(nextDate.getDate() + interval);
-              break;
-
-          case 'weekly':
-              nextDate.setDate(nextDate.getDate() + (7 * interval));
-              break;
-
-          case 'monthly':
-          case 'custom_month':
-              // First, set to first day to avoid skipping months
-              nextDate.setDate(1);
-              nextDate.setMonth(nextDate.getMonth() + interval);
-              const nextMonthLastDay = getLastDayOfMonth(nextDate);
-
-              // If original date was last day of month OR was a high day (29-31)
-              if (wasLastDay || originalWasHighDay) {
-                  // Always set to last day of target month
-                  nextDate.setDate(nextMonthLastDay);
-              } else {
-                  // For normal days (1-28), keep the same day
-                  nextDate.setDate(originalDay);
-              }
-              break;
-
-          case 'yearly':
-              // Same logic for yearly
-              nextDate.setDate(1);
-              nextDate.setFullYear(nextDate.getFullYear() + interval);
-              const nextYearMonthLastDay = getLastDayOfMonth(nextDate);
-              
-              if (wasLastDay || originalWasHighDay) {
-                  nextDate.setDate(nextYearMonthLastDay);
-              } else {
-                  nextDate.setDate(originalDay);
-              }
-              break;
-      }
-
-      return nextDate;
-  };
-
-  // Function to add occurrence if it's within range
-  const addOccurrence = (date: Date) => {
-      if (date >= startDate && date <= endDate && 
-          (!recurrenceEnd || date <= recurrenceEnd)) {
-          occurrences.push({
-              date: date.toISOString(),
-              amount: income.amount
-          });
-      }
-  };
-
-  // Handle one-time income
-  if (income.recurrence.type === 'once') {
-      if (start >= startDate && start <= endDate) {
-          addOccurrence(start);
-      }
-      return occurrences;
-  }
-
-  let currentDate = new Date(start);
-
-  // Handle recurring incomes
-  while (true) { // Changed from currentDate <= endDate condition
-      // Check if we've gone beyond the end date or recurrence end date
-      if (currentDate > endDate || (recurrenceEnd && currentDate > recurrenceEnd)) {
-          break;
-      }
-
-      // Add occurrence if it's within range
-      if (currentDate >= startDate && currentDate <= endDate) {
-          addOccurrence(new Date(currentDate));
-      }
-
-      // Get next date based on recurrence type
-      const nextDate = getNextDate(currentDate, 
-          income.recurrence.type === 'custom' && income.recurrence.intervalUnit === 'day' 
-              ? 'daily' 
-              : income.recurrence.type,
-          income.recurrence.type === 'custom' ? income.recurrence.interval : 1
-      );
-
-      // Prevent infinite loop if next date wasn't changed
-      if (nextDate.getTime() === currentDate.getTime()) {
-          break;
-      }
-
-      currentDate = nextDate;
-  }
-
-  return occurrences;
-}
-
-function getExpenseOccurrencesInRange(expense: ExpenseItem, startDate: Date, endDate: Date): Occurrence[] {
-  const occurrences: Occurrence[] = [];
-  const start = new Date(expense.startDate);
-  const recurrenceEnd = expense.recurrence.endDate ? new Date(expense.recurrence.endDate) : null;
-
-  // Helper function to get last day of month
-  const getLastDayOfMonth = (date: Date): number => {
-      return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-
-  // Helper function to get next occurrence date considering month lengths
-  const getNextDate = (currentDate: Date, type: string, interval: number = 1): Date => {
-      const nextDate = new Date(currentDate);
-      const originalDay = currentDate.getDate();
-      const currentLastDay = getLastDayOfMonth(currentDate);
-      const wasLastDay = originalDay === currentLastDay;
-      const originalWasHighDay = originalDay > 28; // Was 29, 30, or 31
-
-      switch (type) {
-          case 'daily':
-              nextDate.setDate(nextDate.getDate() + interval);
-              break;
-
-          case 'weekly':
-              nextDate.setDate(nextDate.getDate() + (7 * interval));
-              break;
-
-          case 'monthly':
-          case 'custom_month':
-              // First, set to first day to avoid skipping months
-              nextDate.setDate(1);
-              nextDate.setMonth(nextDate.getMonth() + interval);
-              const nextMonthLastDay = getLastDayOfMonth(nextDate);
-
-              // If original date was last day of month OR was a high day (29-31)
-              if (wasLastDay || originalWasHighDay) {
-                  // Always set to last day of target month
-                  nextDate.setDate(nextMonthLastDay);
-              } else {
-                  // For normal days (1-28), keep the same day
-                  nextDate.setDate(originalDay);
-              }
-              break;
-
-          case 'yearly':
-              // Same logic for yearly
-              nextDate.setDate(1);
-              nextDate.setFullYear(nextDate.getFullYear() + interval);
-              const nextYearMonthLastDay = getLastDayOfMonth(nextDate);
-              
-              if (wasLastDay || originalWasHighDay) {
-                  nextDate.setDate(nextYearMonthLastDay);
-              } else {
-                  nextDate.setDate(originalDay);
-              }
-              break;
-      }
-
-      return nextDate;
-  };
-
-  // Function to add occurrence if it's within range
-  const addOccurrence = (date: Date) => {
-      if (date >= startDate && date <= endDate && 
-          (!recurrenceEnd || date <= recurrenceEnd)) {
-          const dateStr = date.toISOString();
-          occurrences.push({
-              date: dateStr,
-              amount: expense.amount,
-              paymentStatus: expense.paymentHistory[dateStr] || { isPaid: false }
-          });
-      }
-  };
-
-  // Handle one-time expense
-  if (expense.recurrence.type === 'once') {
-      if (start >= startDate && start <= endDate) {
-          addOccurrence(start);
-      }
-      return occurrences;
-  }
-
-  let currentDate = new Date(start);
-
-  // Handle recurring expenses
-  while (true) { // Changed from currentDate <= endDate condition
-      // Check if we've gone beyond the end date or recurrence end date
-      if (currentDate > endDate || (recurrenceEnd && currentDate > recurrenceEnd)) {
-          break;
-      }
-
-      // Add occurrence if it's within range
-      if (currentDate >= startDate && currentDate <= endDate) {
-          addOccurrence(new Date(currentDate));
-      }
-
-      // Get next date based on recurrence type
-      const nextDate = getNextDate(currentDate, 
-          expense.recurrence.type === 'custom' && expense.recurrence.intervalUnit === 'day' 
-              ? 'daily' 
-              : expense.recurrence.type,
-          expense.recurrence.type === 'custom' ? expense.recurrence.interval : 1
-      );
-
-      // Prevent infinite loop if next date wasn't changed
-      if (nextDate.getTime() === currentDate.getTime()) {
-          break;
-      }
-
-      currentDate = nextDate;
-  }
-
-  return occurrences;
-}
+import { useDashboardCalculations } from '@/hooks/useDashboardCalculations';
 
 export default function TabOneScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const { incomes, expenses } = useFinance();
+  const [monthlyData, setMonthlyData] = useState({
+    income: 0,
+    expenses: 0,
+    remaining: 0,
+    progress: 0,
+    paid: 0,
+    unpaid: 0,
+    formatInPreferredCurrency: (amount: number) => `${amount}`,
+    isLoading: true
+  });
 
-  // Calculate monthly totals
-  const monthlyData = useMemo(() => {
-    const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  const calculations = useDashboardCalculations(incomes, expenses, currentDate);
 
-    // Get all occurrences for the current month
-    const monthIncomes = incomes.flatMap(income => 
-      getOccurrencesInRange(income, monthStart, monthEnd)
-    );
-    
-    const monthExpenses = expenses.flatMap(expense => 
-      getExpenseOccurrencesInRange(expense, monthStart, monthEnd)
-    );
-
-    // Calculate totals
-    const totalIncome = monthIncomes.reduce((sum, inc) => sum + inc.amount, 0);
-    const totalExpense = monthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-    
-    // Calculate paid vs unpaid expenses
-    const paidExpenses = monthExpenses.reduce((sum, exp) => 
-      sum + (exp.paymentStatus?.isPaid ? exp.amount : 0), 0);
-    const unpaidExpenses = monthExpenses.reduce((sum, exp) => 
-      sum + (!exp.paymentStatus?.isPaid ? exp.amount : 0), 0);
-
-    // Calculate remaining budget
-    const remaining = totalIncome - totalExpense;
-    const spendingProgress = totalExpense / totalIncome; // For progress bar
-
-    return {
-      income: totalIncome,
-      expenses: totalExpense,
-      remaining,
-      progress: Math.min(spendingProgress, 1), // Cap at 100%
-      paid: paidExpenses,
-      unpaid: unpaidExpenses
-    };
-  }, [currentDate, incomes, expenses]);
+  useEffect(() => {
+    calculations.then(setMonthlyData);
+  }, [calculations]);
 
   return (
     <ScreenLayout>
@@ -307,7 +54,7 @@ export default function TabOneScreen() {
             styles.amount,
             { color: monthlyData.remaining >= 0 ? colors.success : colors.error }
           ]}>
-            {formatCurrency(monthlyData.remaining)}
+            {monthlyData.formatInPreferredCurrency(monthlyData.remaining)}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {monthlyData.remaining >= 0 ? 'Left to spend' : 'Over budget'}
@@ -329,7 +76,7 @@ export default function TabOneScreen() {
               <Icon name="arrow-down" size={24} color={colors.success} />
               <ThemedText style={styles.cardLabel}>Income</ThemedText>
               <ThemedText style={styles.amount}>
-                {formatCurrency(monthlyData.income)}
+                {monthlyData.formatInPreferredCurrency(monthlyData.income)}
               </ThemedText>
             </ThemedCard>
           </TouchableOpacity>
@@ -343,7 +90,7 @@ export default function TabOneScreen() {
               <Icon name="arrow-up" size={24} color={colors.error} />
               <ThemedText style={styles.cardLabel}>Expenses</ThemedText>
               <ThemedText style={styles.amount}>
-                {formatCurrency(monthlyData.expenses)}
+                {monthlyData.formatInPreferredCurrency(monthlyData.expenses)}
               </ThemedText>
             </ThemedCard>
           </TouchableOpacity>
@@ -359,13 +106,13 @@ export default function TabOneScreen() {
               <View style={styles.debtGroup}>
                 <ThemedText style={styles.debtLabel}>Unpaid</ThemedText>
                 <ThemedText style={[styles.debtAmount, { color: colors.error }]}>
-                  {formatCurrency(monthlyData.unpaid)}
+                  {monthlyData.formatInPreferredCurrency(monthlyData.unpaid)}
                 </ThemedText>
               </View>
               <View style={styles.debtGroup}>
                 <ThemedText style={styles.debtLabel}>Paid</ThemedText>
                 <ThemedText style={[styles.debtAmount, { color: colors.success }]}>
-                  {formatCurrency(monthlyData.paid)}
+                  {monthlyData.formatInPreferredCurrency(monthlyData.paid)}
                 </ThemedText>
               </View>
             </View>
