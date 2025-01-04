@@ -15,7 +15,7 @@ import { useTheme } from '@/components/useTheme';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { CustomIntervalModal } from './CustomIntervalModal';
 import { IncomeItem, RecurrenceType } from '@/types/income';
-import { parseCurrencyInput } from '@/utils/currency';
+import { currencies, displayToNumeric } from '@/utils/currency';
 import { CurrencyInput } from '../CurrencyInput';
 import { FontAwesome } from '@expo/vector-icons';
 
@@ -107,13 +107,9 @@ export function AddIncomeModal({
     }
     setErrorMessage(null);
 
-    // Convert amount string to number
-    const numericAmount = parseFloat(
-      amount
-        .replace(/\./g, '') // Remove thousand separators
-        .replace(',', '.') // Replace decimal comma with dot
-    );
-    
+    // Convert amount string to number using the current currency's format
+    const numericAmount = displayToNumeric(amount, currencies[currency]);
+
     if (isNaN(numericAmount)) {
       setErrorMessage('Invalid amount');
       return;

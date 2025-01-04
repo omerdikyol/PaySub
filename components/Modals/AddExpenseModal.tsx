@@ -17,7 +17,7 @@ import { useTheme } from '../useTheme';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { CustomIntervalModal } from './CustomIntervalModal';
 import { ExpenseItem, RecurrenceType } from '../../app/types/expense';
-import { parseCurrencyInput } from '../../utils/currency';
+import { currencies, displayToNumeric } from '@/utils/currency';
 import { CurrencyInput } from '../CurrencyInput';
 import { FontAwesome } from '@expo/vector-icons';
 import { ServiceSelectionModal } from './ServiceSelectionModal';
@@ -176,12 +176,8 @@ export function AddExpenseModal({
     }
     setErrorMessage(null);
 
-    // Convert amount string to number
-    const numericAmount = parseFloat(
-      amount
-        .replace(/\./g, '') // Remove thousand separators
-        .replace(',', '.') // Replace decimal comma with dot
-    );
+    // Convert amount string to number using the current currency's format
+    const numericAmount = displayToNumeric(amount, currencies[currency]);
 
     if (isNaN(numericAmount)) {
       setErrorMessage('Invalid amount');
@@ -224,7 +220,6 @@ export function AddExpenseModal({
     }
 
     onSave(expenseData);
-
     resetForm();
     onClose();
   };

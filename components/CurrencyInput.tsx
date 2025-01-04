@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { ThemedView, ThemedText } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
-import { currencies } from '@/utils/currency';
+import { currencies, displayToNumeric, numericToDisplay } from '@/utils/currency';
 import { FontAwesome } from '@expo/vector-icons';
 
 // Add frequently used currencies after TRY
@@ -19,58 +19,45 @@ export function CurrencyInput({ value, onChange, currency, onCurrencyChange }: C
   const { colors, colorScheme } = useTheme();
   const [focused, setFocused] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
-  const wholePartRef = useRef<TextInput>(null);
-  const decimalPartRef = useRef<TextInput>(null);
   
   // Get currency configuration
   const currencyConfig = currencies[currency];
 
-  // Split using the correct decimal separator
-  const [wholePart, decimalPart] = value.split(currencyConfig.decimal);
+  const handleAmountChange = (text: string) => {
+    // Allow only numbers, decimal separator, and thousand separator
+    const validChars = new RegExp(`[0-9${currencyConfig.decimal}${currencyConfig.thousand}]`);
+    const cleanedText = text.split('').filter(char => validChars.test(char)).join('');
+    
+    // Ensure only one decimal separator
+    const parts = cleanedText.split(currencyConfig.decimal);
+    if (parts.length > 2) {
+      parts.splice(2); // Remove extra decimal parts
+    }
+    
+    // Limit decimal places to 2
+    if (parts[1]) {
+      parts[1] = parts[1].slice(0, 2);
+    }
+    
+    // Reconstruct the value
+    const newValue = parts.join(currencyConfig.decimal);
+    onChange(newValue);
+  };
 
   const handleCurrencyChange = (newCurrency: string) => {
     // Get both currency configs
     const oldConfig = currencies[currency];
     const newConfig = currencies[newCurrency];
     
-    // Convert the current value to a normalized format
-    const normalizedValue = value
-      .replace(new RegExp('\\' + oldConfig.thousand, 'g'), '')
-      .replace(oldConfig.decimal, '.');
+    // Convert display value to numeric value
+    const numericValue = displayToNumeric(value, oldConfig);
     
-    // Format the value according to the new currency's format
-    const [whole, decimal = ''] = normalizedValue.split('.');
-    const formattedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, newConfig.thousand);
-    const newValue = `${formattedWhole}${newConfig.decimal}${decimal}`;
+    // Convert numeric value back to display format with new currency's formatting
+    const newValue = numericToDisplay(numericValue, newConfig);
     
     onChange(newValue);
     onCurrencyChange(newCurrency);
     setShowCurrencyPicker(false);
-  };
-
-  const handleWholePartChange = (text: string) => {
-    // Remove existing thousand separators
-    const rawNumber = text.replace(new RegExp('\\' + currencyConfig.thousand, 'g'), '');
-    
-    // Remove any non-numeric characters
-    const cleaned = rawNumber.replace(/[^0-9]/g, '');
-    
-    // Add thousand separators using the correct separator for this currency
-    const formatted = cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, currencyConfig.thousand);
-    
-    // Combine with decimal part using the correct decimal separator
-    onChange(`${formatted || '0'}${currencyConfig.decimal}${decimalPart || ''}`);
-  };
-
-  const handleDecimalPartChange = (text: string) => {
-    const cleaned = text.replace(/[^0-9]/g, '').slice(0, 2);
-    onChange(`${wholePart || '0'}${currencyConfig.decimal}${cleaned}`);
-  };
-
-  const handleWholePartKeyPress = ({ nativeEvent: { key } }: any) => {
-    if (key === currencyConfig.decimal) {
-      decimalPartRef.current?.focus();
-    }
   };
 
   // Sort currencies with TRY first, then frequent ones, then the rest
@@ -96,29 +83,13 @@ export function CurrencyInput({ value, onChange, currency, onCurrencyChange }: C
         focused && styles.focusedInput
       ]}>
         <TextInput
-          ref={wholePartRef}
-          style={[styles.wholePartInput, { color: colors.text }]}
-          value={wholePart === '0' ? '' : wholePart}
-          onChangeText={handleWholePartChange}
-          onKeyPress={handleWholePartKeyPress}
+          style={[styles.amountInput, { color: colors.text }]}
+          value={value}
+          onChangeText={handleAmountChange}
           keyboardType="numeric"
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder="0"
-          placeholderTextColor={colors.muted}
-        />
-        <TouchableOpacity onPress={() => decimalPartRef.current?.focus()}>
-          <ThemedText style={styles.comma}>{currencyConfig.decimal}</ThemedText>
-        </TouchableOpacity>
-        <TextInput
-          ref={decimalPartRef}
-          style={[styles.decimalPartInput, { color: colors.text }]}
-          value={decimalPart || ''}
-          onChangeText={handleDecimalPartChange}
-          keyboardType="numeric"
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          placeholder="00"
+          placeholder={`0${currencyConfig.decimal}00`}
           placeholderTextColor={colors.muted}
         />
 
@@ -146,8 +117,8 @@ export function CurrencyInput({ value, onChange, currency, onCurrencyChange }: C
         >
           <View style={[styles.currencyPicker, { backgroundColor: colors.card.background }]}>
             <ScrollView 
-              showsVerticalScrollIndicator={true} // Add this line
-              indicatorStyle={colorScheme === 'dark' ? 'white' : 'black'} // Add this line
+              showsVerticalScrollIndicator={true}
+              indicatorStyle={colorScheme === 'dark' ? 'white' : 'black'}
               style={styles.scrollView}
             >
               {sortedCurrencies.map((currencyItem) => (
@@ -199,20 +170,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#007AFF',
   },
-  wholePartInput: {
+  amountInput: {
     fontSize: 24,
     fontWeight: 'bold',
     flex: 1,
     padding: 0,
-  },
-  decimalPartInput: {
-    fontSize: 20,
-    width: 30,
-    padding: 0,
-  },
-  comma: {
-    fontSize: 24,
-    marginHorizontal: 2,
   },
   currencySelector: {
     flexDirection: 'row',
@@ -237,7 +199,7 @@ const styles = StyleSheet.create({
   },
   currencyPicker: {
     width: '100%',
-    maxHeight: '70%', // Increased height
+    maxHeight: '70%',
     borderRadius: 12,
     elevation: 5,
     shadowColor: '#000',
@@ -245,18 +207,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    overflow: 'hidden', // Added to keep border radius with ScrollView
+    overflow: 'hidden',
   },
   scrollView: {
-    paddingRight: 2, // Add this to prevent content from touching scroll indicator
+    paddingRight: 2,
   },
   currencyOption: {
     padding: 15,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.1)',
-  },
-  currencyOptionText: {
-    fontSize: 16,
   },
   currencyOptionContent: {
     flexDirection: 'row',
