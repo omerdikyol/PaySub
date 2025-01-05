@@ -50,54 +50,62 @@ export const BaseCard = ({ item, onPress, renderRightColumn }: BaseCardProps) =>
       style={styles.cardTouchArea}
     >
       <ThemedView style={[styles.card, { backgroundColor: colors.card.background }]}>
-        {/* Date Column */}
-        <View style={styles.dateColumn}>
-          <ThemedText style={styles.dayText}>{day}</ThemedText>
-          <ThemedText style={styles.monthText}>{month}</ThemedText>
-        </View>
+        {/* Color Accent */}
+        {item.color && (
+          <View style={[styles.colorAccent, { backgroundColor: item.color }]} />
+        )}
 
-        {/* Main Content */}
-        <View style={styles.mainContent}>
-          <View style={styles.topRow}>
-            {item.service?.logo && (
-              <Image 
-                source={typeof item.service.logo === 'string' 
-                  ? { uri: item.service.logo }
-                  : item.service.logo
-                }
-                style={styles.serviceLogo}
-              />
-            )}
-            <ThemedText style={styles.nameText} numberOfLines={1}>
-              {displayName}
-            </ThemedText>
+        {/* Card Content Container */}
+        <View style={styles.cardContent}>
+          {/* Date Column */}
+          <View style={styles.dateColumn}>
+            <ThemedText style={styles.dayText}>{day}</ThemedText>
+            <ThemedText style={styles.monthText}>{month}</ThemedText>
           </View>
 
-          <View style={styles.bottomRow}>
-            <View style={[styles.recurrenceBadge, { backgroundColor: colors.card.subtle }]}>
-              <FontAwesome 
-                name={recurrenceType === 'once' ? 'calendar' : 'refresh'} 
-                size={12} 
-                color={colors.muted} 
-                style={styles.recurrenceIcon}
-              />
-              <ThemedText style={styles.recurrenceText}>
-                {recurrenceType === 'custom'
-                  ? `Every ${item.recurrence.interval} ${item.recurrence.intervalUnit || 'month'}`
-                  : recurrenceType === 'once' ? 'One-time' : recurrenceType}
+          {/* Main Content */}
+          <View style={styles.mainContent}>
+            <View style={styles.topRow}>
+              {item.service?.logo && (
+                <Image 
+                  source={typeof item.service.logo === 'string' 
+                    ? { uri: item.service.logo }
+                    : item.service.logo
+                  }
+                  style={styles.serviceLogo}
+                />
+              )}
+              <ThemedText style={styles.nameText} numberOfLines={1}>
+                {displayName}
               </ThemedText>
             </View>
-          </View>
-        </View>
 
-        {/* Right Column */}
-        {renderRightColumn ? renderRightColumn() : (
-          <View style={styles.rightColumn}>
-            <ThemedText style={styles.amountText}>
-              {formatCurrency(item.amount, item.currency)}
-            </ThemedText>
+            <View style={styles.bottomRow}>
+              <View style={[styles.recurrenceBadge, { backgroundColor: colors.card.subtle }]}>
+                <FontAwesome 
+                  name={recurrenceType === 'once' ? 'calendar' : 'refresh'} 
+                  size={12} 
+                  color={colors.muted} 
+                  style={styles.recurrenceIcon}
+                />
+                <ThemedText style={styles.recurrenceText}>
+                  {recurrenceType === 'custom'
+                    ? `Every ${item.recurrence.interval} ${item.recurrence.intervalUnit || 'month'}`
+                    : recurrenceType === 'once' ? 'One-time' : recurrenceType}
+                </ThemedText>
+              </View>
+            </View>
           </View>
-        )}
+
+          {/* Right Column */}
+          {renderRightColumn ? renderRightColumn() : (
+            <View style={styles.rightColumn}>
+              <ThemedText style={styles.amountText}>
+                {formatCurrency(item.amount, item.currency)}
+              </ThemedText>
+            </View>
+          )}
+        </View>
       </ThemedView>
     </TouchableOpacity>
   );
@@ -111,8 +119,8 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     borderRadius: 16,
-    padding: 12,
     height: 80,
+    overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -124,6 +132,11 @@ const styles = StyleSheet.create({
         elevation: 2,
       },
     }),
+  },
+  cardContent: {
+    flex: 1,
+    flexDirection: 'row',
+    padding: 12,
   },
   dateColumn: {
     width: 50,
@@ -184,5 +197,9 @@ const styles = StyleSheet.create({
   amountText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  colorAccent: {
+    width: 8,
+    height: '100%',
   },
 });

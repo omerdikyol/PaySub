@@ -20,9 +20,18 @@ import { CurrencyInput } from '../CurrencyInput';
 import { FontAwesome } from '@expo/vector-icons';
 
 const COLORS = [
-  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
-  '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB',
-  '#E74C3C', '#2ECC71', '#F1C40F', '#8E44AD'
+  '#007AFF', // Blue (Primary)
+  '#34C759', // Green (Primary)
+  '#FF3B30', // Red (Primary)
+  '#FFCC00', // Yellow (Primary)
+  '#AF52DE', // Purple (Secondary)
+  '#FF9500', // Orange (Secondary)
+  '#00BCD4', // Cyan (Secondary)
+  '#FF2D55', // Pink (Secondary)
+  '#5856D6', // Indigo (Secondary)
+  '#4CD964', // Lime (Secondary)
+  '#FF6B6B', // Coral (Accent)
+  '#5C6BC0'  // Blue-Purple (Accent)
 ];
 
 type IntervalUnit = 'day' | 'month';
@@ -218,8 +227,8 @@ export function AddIncomeModal({
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionLabelContainer}>
-                    <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-                      <FontAwesome name="money" size={16} color={colors.primary} />
+                    <View style={[styles.iconContainer, { backgroundColor: '#007AFF20' }]}>
+                      <FontAwesome name="money" size={16} color="#007AFF" />
                     </View>
                     <View>
                       <ThemedText style={styles.sectionTitle}>Amount</ThemedText>
@@ -243,8 +252,8 @@ export function AddIncomeModal({
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionLabelContainer}>
-                    <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-                      <FontAwesome name="tag" size={16} color={colors.primary} />
+                    <View style={[styles.iconContainer, { backgroundColor: '#007AFF20' }]}>
+                      <FontAwesome name="tag" size={16} color="#007AFF" />
                     </View>
                     <View>
                       <ThemedText style={styles.sectionTitle}>Name</ThemedText>
@@ -269,8 +278,8 @@ export function AddIncomeModal({
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionLabelContainer}>
-                    <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-                      <FontAwesome name="repeat" size={16} color={colors.primary} />
+                    <View style={[styles.iconContainer, { backgroundColor: '#007AFF20' }]}>
+                      <FontAwesome name="repeat" size={16} color="#007AFF" />
                     </View>
                     <View>
                       <ThemedText style={styles.sectionTitle}>Recurrence</ThemedText>
@@ -301,8 +310,8 @@ export function AddIncomeModal({
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionLabelContainer}>
-                    <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-                      <FontAwesome name="calendar" size={16} color={colors.primary} />
+                    <View style={[styles.iconContainer, { backgroundColor: '#007AFF20' }]}>
+                      <FontAwesome name="calendar" size={16} color="#007AFF" />
                     </View>
                     <View>
                       <ThemedText style={styles.sectionTitle}>Dates</ThemedText>
@@ -367,8 +376,8 @@ export function AddIncomeModal({
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionLabelContainer}>
-                    <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-                      <FontAwesome name="paint-brush" size={16} color={colors.primary} />
+                    <View style={[styles.iconContainer, { backgroundColor: '#007AFF20' }]}>
+                      <FontAwesome name="paint-brush" size={16} color="#007AFF" />
                     </View>
                     <View>
                       <ThemedText style={styles.sectionTitle}>Color</ThemedText>

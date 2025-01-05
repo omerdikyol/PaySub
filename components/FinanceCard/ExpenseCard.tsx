@@ -63,7 +63,8 @@ export const ExpenseCard = ({
     amount: item.amount,
     currency: item.originalExpense.currency,
     service: item.originalExpense.service,
-    recurrence: item.originalExpense.recurrence
+    recurrence: item.originalExpense.recurrence,
+    color: item.originalExpense.color
   };
 
   const handleSwipeLeft = () => {
@@ -125,40 +126,59 @@ export const ExpenseCard = ({
   };
 
   // Custom render for the right column with payment button
-  const renderRightColumn = () => (
-    <View style={styles.rightColumn}>
-      <ThemedText style={styles.amountText}>
-        {formatCurrency(item.amount, item.originalExpense.currency)}
-      </ThemedText>
+  const renderRightColumn = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const paymentDate = new Date(item.date);
+    paymentDate.setHours(0, 0, 0, 0);
+    const isOverdue = !item.paymentStatus?.isPaid && paymentDate < today;
 
-      <View style={styles.actionsRow}>
-        {item.paymentStatus?.isPaid ? (
-          <TouchableOpacity
-            style={styles.paidBadge}
-            onPress={handlePaymentButtonClick}
-          >
-            <FontAwesome name="check" size={12} color="#fff" />
-            <ThemedText style={styles.paidText}>PAID</ThemedText>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.payButton, { backgroundColor: colors.card.subtle }]}
-            onPress={handlePaymentButtonClick}
-          >
-            <FontAwesome 
-              name="credit-card" 
-              size={16} 
-              color={colors.text} 
-              style={styles.payButtonIcon}
-            />
-            <ThemedText style={styles.payButtonText}>
-              Pay Now
-            </ThemedText>
-          </TouchableOpacity>
-        )}
+    return (
+      <View style={styles.rightColumn}>
+        <View style={styles.amountContainer}>
+          <ThemedText style={styles.amountText}>
+            {formatCurrency(item.amount, item.originalExpense.currency)}
+          </ThemedText>
+          {isOverdue && (
+            <View style={styles.overdueBadge}>
+              <FontAwesome name="exclamation" size={10} color="#fff" />
+            </View>
+          )}
+        </View>
+
+        <View style={styles.actionsRow}>
+          {item.paymentStatus?.isPaid ? (
+            <TouchableOpacity
+              style={styles.paidBadge}
+              onPress={handlePaymentButtonClick}
+            >
+              <FontAwesome name="check" size={12} color="#fff" />
+              <ThemedText style={styles.paidText}>PAID</ThemedText>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.payButton, 
+                { backgroundColor: item.originalExpense.color || '#888888' },
+                isOverdue && styles.overduePayButton
+              ]}
+              onPress={handlePaymentButtonClick}
+            >
+              <FontAwesome 
+                name="credit-card" 
+                size={16} 
+                color="#fff"
+                style={styles.payButtonIcon}
+              />
+              <ThemedText style={[styles.payButtonText, { color: '#fff' }]}>
+                Pay Now
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <Swipeable
@@ -248,5 +268,27 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
     borderRadius: 16,
     opacity: 0.9,
+  },
+  overdueText: {
+    fontSize: 12,
+    color: '#FF3B30',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  overduePayButton: {
+    backgroundColor: '#FF3B30',
+  },
+  amountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  overdueBadge: {
+    backgroundColor: '#FF3B30',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

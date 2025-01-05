@@ -1,11 +1,11 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, Animated } from 'react-native';
 import { ThemedView, ThemedText, ThemedCard } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
 import { ScreenLayout } from '@/components/ScreenLayout';
 import { MonthNavigation } from '@/components/MonthNavigation';
-import { ProgressBar } from '@/components/ProgressBar';
+import { BalanceProgressBar } from '@/components/BalanceProgressBar';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFinance } from '@/context/FinanceContext';
 import { useRouter } from 'expo-router';
 import { useDashboardCalculations } from '@/hooks/useDashboardCalculations';
@@ -15,6 +15,7 @@ export default function TabOneScreen() {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const { incomes, expenses } = useFinance();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const [monthlyData, setMonthlyData] = useState({
     income: 0,
     expenses: 0,
@@ -32,140 +33,169 @@ export default function TabOneScreen() {
     calculations.then(setMonthlyData);
   }, [calculations]);
 
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
   return (
     <ScreenLayout>
       {/* Header */}
-      <View style={[styles.fixedHeader, { backgroundColor: colors.background }]}>
-        {/* Title and icons row */}
-        <View style={styles.headerContainer}>
+      <ThemedView style={styles.headerContainer}>
+        <View>
+          <ThemedText style={styles.welcomeText}>Welcome back</ThemedText>
           <ThemedText style={styles.headerTitle}>Dashboard</ThemedText>
-          <View style={styles.headerIcons}>
-          </View>
         </View>
-        {/* Month nav */}
-        <MonthNavigation currentDate={currentDate} onMonthChange={setCurrentDate} />
-      </View>
+        <TouchableOpacity 
+          style={styles.settingsButton}
+          onPress={() => router.push('/(tabs)/settings')}
+        >
+          <Icon name="cog" size={24} color={colors.text} />
+        </TouchableOpacity>
+      </ThemedView>
+      <MonthNavigation currentDate={currentDate} onMonthChange={setCurrentDate} />
 
-      {/* Rest of the dashboard content */}
-      <ScrollView style={styles.scrollView}>
-        <ThemedCard style={styles.mainCard}>
-          <ThemedText style={styles.cardTitle}>Monthly Overview</ThemedText>
-          <ThemedText style={[
-            styles.amount,
-            { color: monthlyData.remaining >= 0 ? colors.success : colors.error }
-          ]}>
-            {monthlyData.formatInPreferredCurrency(monthlyData.remaining)}
-          </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            {monthlyData.remaining >= 0 ? 'Left to spend' : 'Over budget'}
-          </ThemedText>
-          <ProgressBar 
-            progress={monthlyData.progress}
-            color={monthlyData.remaining >= 0 ? colors.primary : colors.error}
-            style={styles.progressBar}
-          />
-        </ThemedCard>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <ThemedCard style={styles.mainCard}>
+            <View style={styles.mainCardHeader}>
+              <View>
+                <ThemedText style={styles.cardTitle}>Monthly Balance</ThemedText>
+                <ThemedText style={styles.subtitle}>
+                  {monthlyData.remaining >= 0 ? 'Available to spend' : 'Over budget'}
+                </ThemedText>
+              </View>
+              <Icon 
+                name={monthlyData.remaining >= 0 ? "cash-plus" : "cash-minus"} 
+                size={32} 
+                color={monthlyData.remaining >= 0 ? colors.success : colors.error} 
+              />
+            </View>
+            <ThemedText style={[
+              styles.amount,
+              { color: monthlyData.remaining >= 0 ? colors.success : colors.error }
+            ]}>
+              {monthlyData.formatInPreferredCurrency(monthlyData.remaining)}
+            </ThemedText>
+            <BalanceProgressBar 
+              income={monthlyData.income}
+              expenses={monthlyData.expenses}
+              style={styles.progressBar}
+            />
+          </ThemedCard>
 
-        <View style={styles.row}>
-          <TouchableOpacity 
-            style={styles.cardWrapper}
-            activeOpacity={0.7}
-            onPress={() => router.push('/(tabs)/income')}
-          >
-            <ThemedCard style={[styles.card, styles.halfCard]}>
-              <Icon name="arrow-down" size={24} color={colors.success} />
-              <ThemedText style={styles.cardLabel}>Income</ThemedText>
-              <ThemedText style={styles.amount}>
-                {monthlyData.formatInPreferredCurrency(monthlyData.income)}
-              </ThemedText>
-            </ThemedCard>
-          </TouchableOpacity>
+          <View style={styles.row}>
+            <TouchableOpacity 
+              style={styles.cardWrapper}
+              activeOpacity={0.7}
+              onPress={() => router.push('/(tabs)/income')}
+            >
+              <ThemedCard style={[styles.card, styles.halfCard]}>
+                <View style={[styles.iconCircle, { backgroundColor: colors.success + '20' }]}>
+                  <Icon name="arrow-down" size={24} color={colors.success} />
+                </View>
+                <ThemedText style={styles.cardLabel}>Income</ThemedText>
+                <ThemedText style={[styles.amount, styles.smallerAmount]}>
+                  {monthlyData.formatInPreferredCurrency(monthlyData.income)}
+                </ThemedText>
+              </ThemedCard>
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.cardWrapper}
+            <TouchableOpacity 
+              style={styles.cardWrapper}
+              activeOpacity={0.7}
+              onPress={() => router.push('/(tabs)/expenses')}
+            >
+              <ThemedCard style={[styles.card, styles.halfCard]}>
+                <View style={[styles.iconCircle, { backgroundColor: colors.error + '20' }]}>
+                  <Icon name="arrow-up" size={24} color={colors.error} />
+                </View>
+                <ThemedText style={styles.cardLabel}>Expenses</ThemedText>
+                <ThemedText style={[styles.amount, styles.smallerAmount]}>
+                  {monthlyData.formatInPreferredCurrency(monthlyData.expenses)}
+                </ThemedText>
+              </ThemedCard>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => router.push('/(tabs)/expenses')}
           >
-            <ThemedCard style={[styles.card, styles.halfCard]}>
-              <Icon name="arrow-up" size={24} color={colors.error} />
-              <ThemedText style={styles.cardLabel}>Expenses</ThemedText>
-              <ThemedText style={styles.amount}>
-                {monthlyData.formatInPreferredCurrency(monthlyData.expenses)}
-              </ThemedText>
+            <ThemedCard style={[styles.card, styles.debtCard]}>
+              <View style={styles.debtHeader}>
+                <ThemedText style={styles.sectionTitle}>Payment Status</ThemedText>
+                <Icon name="chevron-right" size={24} color={colors.text} />
+              </View>
+              <View style={styles.debtSection}>
+                <View style={styles.debtGroup}>
+                  <View style={[styles.iconCircle, { backgroundColor: colors.error + '20' }]}>
+                    <Icon name="clock-outline" size={24} color={colors.error} />
+                  </View>
+                  <ThemedText style={styles.debtLabel}>Unpaid</ThemedText>
+                  <ThemedText style={[styles.debtAmount, { color: colors.error }]}>
+                    {monthlyData.formatInPreferredCurrency(monthlyData.unpaid)}
+                  </ThemedText>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.debtGroup}>
+                  <View style={[styles.iconCircle, { backgroundColor: colors.success + '20' }]}>
+                    <Icon name="check-circle-outline" size={24} color={colors.success} />
+                  </View>
+                  <ThemedText style={styles.debtLabel}>Paid</ThemedText>
+                  <ThemedText style={[styles.debtAmount, { color: colors.success }]}>
+                    {monthlyData.formatInPreferredCurrency(monthlyData.paid)}
+                  </ThemedText>
+                </View>
+              </View>
             </ThemedCard>
           </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => router.push('/(tabs)/expenses')}
-        >
-          <ThemedCard style={styles.card}>
-            <ThemedText style={styles.sectionTitle}>Debts</ThemedText>
-            <View style={styles.debtSection}>
-              <View style={styles.debtGroup}>
-                <ThemedText style={styles.debtLabel}>Unpaid</ThemedText>
-                <ThemedText style={[styles.debtAmount, { color: colors.error }]}>
-                  {monthlyData.formatInPreferredCurrency(monthlyData.unpaid)}
-                </ThemedText>
-              </View>
-              <View style={styles.debtGroup}>
-                <ThemedText style={styles.debtLabel}>Paid</ThemedText>
-                <ThemedText style={[styles.debtAmount, { color: colors.success }]}>
-                  {monthlyData.formatInPreferredCurrency(monthlyData.paid)}
-                </ThemedText>
-              </View>
-            </View>
-          </ThemedCard>
-        </TouchableOpacity>
+        </Animated.View>
       </ScrollView>
     </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  // Add new header styles
-  fixedHeader: {
-    zIndex: 1,
-    paddingBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
-  },
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
-    paddingHorizontal: 10
+    marginBottom: 15,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  welcomeText: {
+    fontSize: 14,
+    opacity: 0.7,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold'
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginTop: 4,
   },
-  headerIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10
+  settingsButton: {
+    padding: 8,
+    borderRadius: 12,
   },
-  iconButton: {
-    padding: 8
-  },
-  searchInput: {
-    height: 40,
-    marginHorizontal: 10
-  },
-  // ...existing styles...
   scrollView: {
     flex: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    paddingHorizontal: 16,
   },
   mainCard: {
     padding: 20,
-    marginBottom: 15,
+    marginVertical: 15,
+    borderRadius: 16,
+  },
+  mainCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   row: {
     flexDirection: 'row',
@@ -176,44 +206,67 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    padding: 15,
+    padding: 16,
+    borderRadius: 16,
+  },
+  debtCard: {
+    marginBottom: 20,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
   },
   cardLabel: {
     fontSize: 16,
-    marginVertical: 5,
+    marginVertical: 8,
+    opacity: 0.8,
   },
   amount: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
+    marginVertical: 8,
+  },
+  smallerAmount: {
+    fontSize: 24,
   },
   subtitle: {
     fontSize: 14,
     opacity: 0.7,
-    marginTop: 5,
   },
   progressBar: {
     marginTop: 15,
+    height: 8,
+    borderRadius: 4,
+  },
+  debtHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
   },
   debtSection: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   debtGroup: {
+    flex: 1,
     alignItems: 'center',
+  },
+  divider: {
+    width: 1,
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    marginHorizontal: 15,
   },
   debtLabel: {
     fontSize: 14,
-    marginBottom: 5,
+    marginVertical: 8,
+    opacity: 0.7,
   },
   debtAmount: {
     fontSize: 20,
@@ -221,5 +274,13 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     flex: 1,
+  },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
   },
 });
