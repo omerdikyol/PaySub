@@ -2,8 +2,11 @@ import {
   StyleSheet,
   FlatList,
   View,
+  TouchableOpacity,
+  Animated,
+  Dimensions,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ThemedText } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
 import { ScreenLayout } from '@/components/ScreenLayout';
@@ -20,6 +23,21 @@ import { getOccurrencesInRange } from '@/utils/occurrences';
 import { MenuModal } from '@/components/Modals/MenuModal';
 import { DeleteConfirmationModal } from '@/components/Modals/DeleteConfirmationModal';
 import { AddExpenseModal } from '@/components/Modals/AddExpenseModal';
+import { FontAwesome } from '@expo/vector-icons';
+
+interface GroupedExpenses {
+  id: string;
+  color: string;
+  total: number;
+  currency: string;
+  items: any[];
+}
+
+interface SectionData {
+  title: string;
+  data: GroupedExpenses[];
+  total: number;
+}
 
 export default function Expense() {
   const { colors } = useTheme();
@@ -35,13 +53,14 @@ export default function Expense() {
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [selectedOccurrence, setSelectedOccurrence] = useState<typeof monthOccurrences[0] | null>(null);
   const [relatedPayments, setRelatedPayments] = useState<typeof monthOccurrences>([]);
+  const [showPaidExpenses, setShowPaidExpenses] = useState(false);
+  const [activeTab, setActiveTab] = useState<'unpaid' | 'paid'>('unpaid');
 
   const {
     monthOccurrences,
     totalByCurrency,
     totalInPreferredCurrency,
     sortedOccurrences,
-    groupedOccurrences,
     preferredCurrency,
     formatInPreferredCurrency,
   } = useFinanceCalculations(
@@ -68,6 +87,55 @@ export default function Expense() {
     handleConfirmDelete,
     handleCancelDelete
   } = useFinanceCRUD('expense');
+
+  const groupExpensesByColorAndPaymentStatus = (expenses: typeof monthOccurrences) => {
+    const unpaidGroups: { [key: string]: GroupedExpenses } = {};
+    const paidGroups: { [key: string]: GroupedExpenses } = {};
+    let unpaidTotal = 0;
+    let paidTotal = 0;
+    
+    expenses.forEach(expense => {
+      const color = expense.originalExpense.color || '#888888';
+      const isPaid = expense.paymentStatus?.isPaid;
+      const targetGroups = isPaid ? paidGroups : unpaidGroups;
+      
+      if (!targetGroups[color]) {
+        targetGroups[color] = {
+          id: color,
+          color,
+          total: 0,
+          currency: expense.originalExpense.currency,
+          items: []
+        };
+      }
+      targetGroups[color].items.push(expense);
+      targetGroups[color].total += expense.amount;
+      
+      if (isPaid) {
+        paidTotal += expense.amount;
+      } else {
+        unpaidTotal += expense.amount;
+      }
+    });
+
+    return {
+      unpaid: {
+        title: 'Unpaid Expenses',
+        data: Object.values(unpaidGroups),
+        total: unpaidTotal
+      },
+      paid: {
+        title: 'Paid Expenses',
+        data: Object.values(paidGroups),
+        total: paidTotal
+      }
+    };
+  };
+
+  const { unpaid, paid } = isGrouped ? groupExpensesByColorAndPaymentStatus(sortedOccurrences) : {
+    unpaid: { title: 'Unpaid Expenses', data: sortedOccurrences.filter(e => !e.paymentStatus?.isPaid), total: 0 },
+    paid: { title: 'Paid Expenses', data: sortedOccurrences.filter(e => e.paymentStatus?.isPaid), total: 0 }
+  };
 
   const handlePaymentToggle = (occurrence: typeof monthOccurrences[0]) => {
     const dateStr = occurrence.date;
@@ -145,6 +213,172 @@ export default function Expense() {
     setSortOrder(order);
   };
 
+  const renderSectionHeader = (section: SectionData) => {
+    return (
+      <View style={[styles.sectionHeader, { backgroundColor: colors.background }]}>
+        <View style={styles.sectionTitleRow}>
+          <ThemedText style={styles.sectionTitle}>{section.title}</ThemedText>
+          {section.title === 'Paid Expenses' && (
+            <TouchableOpacity 
+              onPress={() => setShowPaidExpenses(!showPaidExpenses)}
+              style={styles.toggleButton}
+            >
+              <FontAwesome 
+                name={showPaidExpenses ? 'chevron-up' : 'chevron-down'} 
+                size={16} 
+                color={colors.text} 
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+        {isGrouped && (
+          <ThemedText style={styles.sectionTotal}>
+            {formatInPreferredCurrency(section.total)}
+          </ThemedText>
+        )}
+      </View>
+    );
+  };
+
+  const renderGroupHeader = (group: GroupedExpenses) => {
+    return (
+      <View style={[styles.groupHeader, { borderLeftColor: group.color }]}>
+        <ThemedText style={styles.groupTotal}>
+          {formatCurrency(group.total, group.currency)}
+        </ThemedText>
+      </View>
+    );
+  };
+
+  const renderExpenseGroup = (group: GroupedExpenses) => {
+    return (
+      <View style={styles.groupContainer} key={group.id}>
+        {renderGroupHeader(group)}
+        {group.items.map(expense => (
+          <ExpenseCard
+            key={expense.id}
+            item={expense}
+            onPress={handleCardPress}
+            onEdit={(expense) => {
+              setEditingExpense(expense.originalExpense);
+              setIsModalVisible(true);
+            }}
+            onDelete={(expense) => {
+              setSelectedExpense(expense.originalExpense);
+              handleDeleteExpense(expense.originalExpense.id);
+            }}
+            onPaymentToggle={handlePaymentToggle}
+          />
+        ))}
+      </View>
+    );
+  };
+
+  const renderTabSelector = () => {
+    const screenWidth = Dimensions.get('window').width;
+    const containerPadding = 10;
+    const tabWidth = (screenWidth - (containerPadding * 2)) / 2;
+    const indicatorWidth = tabWidth - 32;
+    const translateX = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      Animated.spring(translateX, {
+        toValue: activeTab === 'unpaid' ? 16 : tabWidth + 16,
+        useNativeDriver: true,
+        damping: 20,
+        mass: 1,
+        stiffness: 300,
+      }).start();
+    }, [activeTab]);
+
+    return (
+      <View style={[styles.tabContainer]}>
+        <Animated.View style={[
+          styles.tabIndicator,
+          {
+            width: indicatorWidth,
+            transform: [{ translateX }],
+            backgroundColor: '#007AFF',
+          }
+        ]} />
+        
+        <TouchableOpacity 
+          style={[styles.tab]}
+          onPress={() => setActiveTab('unpaid')}
+        >
+          <ThemedText style={[
+            styles.tabText,
+            activeTab === 'unpaid' && styles.activeTabText
+          ]}>
+            Outstanding
+          </ThemedText>
+          {unpaid.data.length > 0 && (
+            <View style={[styles.badge, { backgroundColor: '#007AFF' }]}>
+              <ThemedText style={styles.badgeText}>
+                {unpaid.data.length}
+              </ThemedText>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.tab]}
+          onPress={() => setActiveTab('paid')}
+        >
+          <ThemedText style={[
+            styles.tabText,
+            activeTab === 'paid' && styles.activeTabText
+          ]}>
+            Paid
+          </ThemedText>
+          {paid.data.length > 0 && (
+            <View style={[styles.badge, { backgroundColor: '#007AFF' }]}>
+              <ThemedText style={styles.badgeText}>
+                {paid.data.length}
+              </ThemedText>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Add list transition animation
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Animate out
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: -20,
+        duration: 150,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      // Reset position
+      slideAnim.setValue(20);
+      // Animate in
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        })
+      ]).start();
+    });
+  }, [activeTab]);
+
   return (
     <ScreenLayout>
       <ExpenseHeader
@@ -165,24 +399,41 @@ export default function Expense() {
       />
 
       <FlatList
-        data={isGrouped ? groupedOccurrences : sortedOccurrences}
-        renderItem={({ item }) => (
-          <ExpenseCard
-            item={item}
-            onPress={handleCardPress}
-            onEdit={(item) => {
-              setEditingExpense(item.originalExpense);
-              setIsModalVisible(true);
-            }}
-            onDelete={(item) => {
-              setSelectedExpense(item.originalExpense);
-              handleDeleteExpense(item.originalExpense.id);
-            }}
-            onPaymentToggle={handlePaymentToggle}
-          />
+        data={activeTab === 'unpaid' ? [unpaid] : [paid]}
+        renderItem={({ item: section }) => (
+          <Animated.View style={{
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }}>
+            {isGrouped ? (
+              section.data.map(renderExpenseGroup)
+            ) : (
+              section.data.map(expense => (
+                <ExpenseCard
+                  key={expense.id}
+                  item={expense}
+                  onPress={handleCardPress}
+                  onEdit={(item) => {
+                    setEditingExpense(item.originalExpense);
+                    setIsModalVisible(true);
+                  }}
+                  onDelete={(item) => {
+                    setSelectedExpense(item.originalExpense);
+                    handleDeleteExpense(item.originalExpense.id);
+                  }}
+                  onPaymentToggle={handlePaymentToggle}
+                />
+              ))
+            )}
+          </Animated.View>
         )}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderListHeader}
+        keyExtractor={(section) => section.title}
+        ListHeaderComponent={
+          <>
+            {renderListHeader()}
+            {renderTabSelector()}
+          </>
+        }
         stickyHeaderIndices={[0]} 
         contentContainerStyle={styles.listContainer}
       />
@@ -241,11 +492,12 @@ const styles = StyleSheet.create({
     paddingBottom: 120
   },
   listHeader: {
-    paddingBottom: 10
+    paddingBottom: 0
   },
   totalContainer: {
     marginTop: 8,
-    marginHorizontal: 10
+    marginHorizontal: 10,
+    marginBottom: 0
   },
   totalText: {
     fontSize: 18,
@@ -256,6 +508,88 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.6,
     textAlign: 'right',
-    marginTop: 4
-  }
+    marginTop: 2
+  },
+  groupContainer: {
+    marginBottom: 16,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderLeftWidth: 4,
+    marginBottom: 8,
+  },
+  groupTotal: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  sectionHeader: {
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  sectionTotal: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginTop: 4,
+  },
+  toggleButton: {
+    padding: 8,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginTop: 2,
+    marginBottom: 4,
+    position: 'relative',
+    height: 48,
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    height: 2,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 8,
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '500',
+    opacity: 0.7,
+  },
+  activeTabText: {
+    opacity: 1,
+    fontWeight: '600',
+  },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
 });

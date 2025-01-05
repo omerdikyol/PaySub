@@ -1,130 +1,87 @@
-import { StyleSheet, TouchableOpacity, View, Modal, Platform } from 'react-native';
+import React from 'react';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { ThemedText, ThemedView } from './Themed';
+import { ThemedText } from './Themed';
 import { useTheme } from './useTheme';
-import { useState } from 'react';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
-interface MonthNavigationProps {
+type MonthNavigationProps = {
   currentDate: Date;
   onMonthChange: (date: Date) => void;
-}
+};
 
-export function MonthNavigation({ currentDate, onMonthChange }: MonthNavigationProps) {
-  const { colors, colorScheme } = useTheme();
-  const [showPicker, setShowPicker] = useState(false);
+export const MonthNavigation = ({ currentDate, onMonthChange }: MonthNavigationProps) => {
+  const { colors } = useTheme();
 
-  const monthYear = currentDate.toLocaleString('en-US', {
-    month: 'long',
-    year: 'numeric'
-  });
-
-  const goToPreviousMonth = () => {
+  const handlePrevMonth = () => {
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() - 1);
     onMonthChange(newDate);
   };
 
-  const goToNextMonth = () => {
+  const handleNextMonth = () => {
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() + 1);
     onMonthChange(newDate);
   };
 
-  const handleDateChange = (_: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-        setShowPicker(false); // Close picker on Android
-    }
-    if (Platform.OS === 'ios') {
-        setShowPicker(Platform.OS === 'ios'); // Only iOS needs manual closing
-    }
-    
-    if (selectedDate) {
-        // Keep the first day of the month when changing dates
-        const newDate = new Date(selectedDate);
-        newDate.setDate(1);
-        onMonthChange(newDate);
-    }
-};
+  const getNextMonthName = () => {
+    const nextMonth = new Date(currentDate);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    return nextMonth.toLocaleString('default', { month: 'short' });
+  };
+
+  const getPrevMonthName = () => {
+    const prevMonth = new Date(currentDate);
+    prevMonth.setMonth(prevMonth.getMonth() - 1);
+    return prevMonth.toLocaleString('default', { month: 'short' });
+  };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={goToPreviousMonth}>
-        <FontAwesome name="chevron-left" size={20} color={colors.text} />
-      </TouchableOpacity>
-      
-      <TouchableOpacity onPress={() => setShowPicker(true)}>
-        <ThemedText style={styles.monthText}>{monthYear}</ThemedText>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={goToNextMonth}>
-        <FontAwesome name="chevron-right" size={20} color={colors.text} />
+      <TouchableOpacity
+        style={[styles.navButton, { backgroundColor: colors.card.subtle }]}
+        onPress={handlePrevMonth}
+      >
+        <FontAwesome name="chevron-left" size={16} color={colors.text} />
+        <ThemedText style={styles.monthText}>{getPrevMonthName()}</ThemedText>
       </TouchableOpacity>
 
-      {showPicker && (
-        Platform.OS === 'ios' ? (
-          <Modal
-            transparent={true}
-            animationType="fade"
-            visible={showPicker}
-            onRequestClose={() => setShowPicker(false)}
-          >
-            <TouchableOpacity 
-              style={styles.modalOverlay}
-              activeOpacity={1}
-              onPress={() => setShowPicker(false)}
-            >
-              <ThemedView style={styles.pickerContainer}>
-                <DateTimePicker
-                  value={currentDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={handleDateChange}
-                  themeVariant={colorScheme} // Add this line
-                />
-              </ThemedView>
-            </TouchableOpacity>
-          </Modal>
-        ) : (
-          <DateTimePicker
-            value={currentDate}
-            mode="date"
-            display="default"
-            onChange={handleDateChange}
-            themeVariant={colorScheme} // Add this line
-          />
-        )
-      )}
+      <ThemedText style={styles.currentMonth}>
+        {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+      </ThemedText>
+
+      <TouchableOpacity
+        style={[styles.navButton, { backgroundColor: colors.card.subtle }]}
+        onPress={handleNextMonth}
+      >
+        <ThemedText style={styles.monthText}>{getNextMonthName()}</ThemedText>
+        <FontAwesome name="chevron-right" size={16} color={colors.text} />
+      </TouchableOpacity>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
+  },
+  navButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 8,
+  },
+  currentMonth: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   monthText: {
-    fontSize: 18,
-    fontWeight: '600',
-    padding: 10, // Add padding for better touch target
+    fontSize: 14,
+    opacity: 0.8,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pickerContainer: {
-    padding: 20,
-    borderRadius: 12,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  }
 });

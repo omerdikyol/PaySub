@@ -64,7 +64,8 @@ export const ExpenseCard = ({
     currency: item.originalExpense.currency,
     service: item.originalExpense.service,
     recurrence: item.originalExpense.recurrence,
-    color: item.originalExpense.color
+    color: item.originalExpense.color,
+    opacity: item.paymentStatus?.isPaid ? 0.5 : 1
   };
 
   const handleSwipeLeft = () => {
@@ -134,9 +135,15 @@ export const ExpenseCard = ({
     const isOverdue = !item.paymentStatus?.isPaid && paymentDate < today;
 
     return (
-      <View style={styles.rightColumn}>
+      <View style={[
+        styles.rightColumn,
+        item.paymentStatus?.isPaid && styles.paidRightColumn
+      ]}>
         <View style={styles.amountContainer}>
-          <ThemedText style={styles.amountText}>
+          <ThemedText style={[
+            styles.amountText,
+            item.paymentStatus?.isPaid && styles.paidAmountText
+          ]}>
             {formatCurrency(item.amount, item.originalExpense.currency)}
           </ThemedText>
           {isOverdue && (
@@ -149,7 +156,7 @@ export const ExpenseCard = ({
         <View style={styles.actionsRow}>
           {item.paymentStatus?.isPaid ? (
             <TouchableOpacity
-              style={styles.paidBadge}
+              style={[styles.paidBadge, { opacity: 0.6 }]}
               onPress={handlePaymentButtonClick}
             >
               <FontAwesome name="check" size={12} color="#fff" />
@@ -290,5 +297,12 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  paidRightColumn: {
+    opacity: 0.6,
+  },
+  paidAmountText: {
+    textDecorationLine: 'line-through',
+    opacity: 0.7,
   },
 });
