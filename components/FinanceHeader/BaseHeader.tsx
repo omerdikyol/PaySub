@@ -8,6 +8,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { ThemedText, ThemedInput } from '../Themed';
 import { useTheme } from '../useTheme';
 import { MonthNavigation } from '../MonthNavigation';
+import { useLanguage } from '@/context/LanguageContext';
 
 export type BaseHeaderProps = {
   title: string;
@@ -35,12 +36,13 @@ export const BaseHeader = ({
   onMonthChange,
 }: BaseHeaderProps) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Title and icons row */}
       <View style={styles.headerContainer}>
-        <ThemedText style={styles.headerTitle}>{title}</ThemedText>
+        <ThemedText style={styles.headerTitle}>{t(title.toLowerCase())}</ThemedText>
         <View style={styles.headerIcons}>
           <TouchableOpacity
             style={[
@@ -51,12 +53,16 @@ export const BaseHeader = ({
               }
             ]}
             onPress={onGroupToggle}
+            accessibilityLabel={isGrouped ? t('ungroup') : t('group')}
+            accessibilityHint={isGrouped ? t('ungroupItems') : t('groupByColor')}
           >
             <FontAwesome name="th-large" size={20} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.iconButton}
             onPress={onSortPress}
+            accessibilityLabel={t('sort')}
+            accessibilityHint={t('sortBy')}
           >
             <FontAwesome name="sort" size={20} color={colors.text} />
           </TouchableOpacity>
@@ -69,6 +75,8 @@ export const BaseHeader = ({
               }
             ]}
             onPress={onSearchToggle}
+            accessibilityLabel={showSearch ? t('clearSearch') : t('search')}
+            accessibilityHint={t('searchByName')}
           >
             <FontAwesome name="search" size={20} color={colors.text} />
           </TouchableOpacity>
@@ -81,9 +89,10 @@ export const BaseHeader = ({
           label=""
           value={searchQuery}
           onChangeText={onSearchChange}
-          placeholder="Search by name..."
+          placeholder={t('searchByName')}
           style={styles.searchInput}
           autoFocus={true}
+          accessibilityLabel={t('searchByName')}
         />
       )}
 

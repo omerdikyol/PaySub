@@ -20,9 +20,11 @@ import { DeleteConfirmationModal } from '@/components/Modals/DeleteConfirmationM
 import { AddIncomeModal } from '@/components/Modals/AddIncomeModal';
 import { IncomePaymentHistoryModal } from '@/components/PaymentHistory/IncomePaymentHistoryModal';
 import { getOccurrencesInRange } from '@/utils/occurrences';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function Income() {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const { incomes } = useFinance();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
@@ -74,7 +76,7 @@ export default function Income() {
       <View style={[styles.listHeader, { backgroundColor: colors.background }]}>
         <View style={styles.totalContainer}>
           <ThemedText style={styles.totalText}>
-            Total: {formatInPreferredCurrency(totalInPreferredCurrency)}
+            {t('total')}: {formatInPreferredCurrency(totalInPreferredCurrency)}
           </ThemedText>
           <ThemedText style={styles.originalAmounts}>
             {Object.entries(totalByCurrency)

@@ -12,6 +12,7 @@ import { ThemedText, ThemedView } from '../Themed';
 import { useTheme } from '../useTheme';
 import { formatCurrency } from '@/utils/currency';
 import { useAnimations } from '@/hooks/useAnimations';
+import { useLanguage } from '@/context/LanguageContext';
 
 export interface BaseFinanceItem {
   id: string;
@@ -40,6 +41,7 @@ type BaseCardProps = {
 
 export const BaseCard = ({ item, onPress, renderRightColumn }: BaseCardProps) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const {
     fadeAnim,
     scaleAnim,
@@ -55,9 +57,23 @@ export const BaseCard = ({ item, onPress, renderRightColumn }: BaseCardProps) =>
 
   const date = new Date(item.date);
   const day = date.getDate();
-  const month = date.toLocaleString('en-US', { month: 'short' });
+  const getShortMonth = (date: Date) => {
+    const monthIndex = date.getMonth();
+    const monthKeys = ['jan', 'feb', 'mar', 'apr', 'may_short', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    return t(monthKeys[monthIndex]);
+  };
+  const month = getShortMonth(date);
   const recurrenceType = item.recurrence.type;
   const displayName = item.service?.customName || item.name;
+
+  const getRecurrenceText = () => {
+    if (recurrenceType === 'custom' && item.recurrence.interval && item.recurrence.intervalUnit) {
+      const unit = t(item.recurrence.intervalUnit + (item.recurrence.interval > 1 ? 's' : ''));
+      return t('custom').replace('{interval}', item.recurrence.interval.toString())
+                       .replace('{unit}', unit);
+    }
+    return t(recurrenceType);
+  };
 
   return (
     <TouchableOpacity
@@ -135,9 +151,7 @@ export const BaseCard = ({ item, onPress, renderRightColumn }: BaseCardProps) =>
                     style={styles.recurrenceIcon}
                   />
                   <ThemedText style={styles.recurrenceText}>
-                    {recurrenceType === 'custom'
-                      ? `Every ${item.recurrence.interval} ${item.recurrence.intervalUnit || 'month'}`
-                      : recurrenceType === 'once' ? 'One-time' : recurrenceType}
+                    {getRecurrenceText()}
                   </ThemedText>
                 </View>
               </View>

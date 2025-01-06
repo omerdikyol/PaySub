@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { ThemedText, ThemedButton } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
+import { useLanguage } from '@/context/LanguageContext';
 
 type IntervalUnit = 'day' | 'month';
 
@@ -35,6 +36,7 @@ export function CustomIntervalModal({
   const [intervalValue, setIntervalValue] = useState(initialInterval);
   const [intervalUnit, setIntervalUnit] = useState<IntervalUnit>(initialUnit);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   // If the modal reopens, reset state from props
   useEffect(() => {
@@ -54,6 +56,7 @@ export function CustomIntervalModal({
       animationType="slide"
       transparent={false}
       onRequestClose={onCancel}
+      accessibilityLabel={t('setCustomInterval')}
     >
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
         <KeyboardAvoidingView
@@ -67,16 +70,16 @@ export function CustomIntervalModal({
                 contentContainerStyle={styles.scrollInner}
                 keyboardShouldPersistTaps="handled"
               >
-                <ThemedText style={styles.title}>Set Custom Interval</ThemedText>
+                <ThemedText style={styles.title}>{t('setCustomInterval')}</ThemedText>
 
                 {/* Numeric input for "Repeat every" */}
                 <View style={styles.inputBlock}>
-                  <ThemedText style={styles.label}>Repeat every</ThemedText>
+                  <ThemedText style={styles.label}>{t('repeatEvery')}</ThemedText>
                   <TextInput
                     value={intervalValue}
                     onChangeText={setIntervalValue}
                     keyboardType="numeric"
-                    placeholder="e.g. 1"
+                    placeholder={t('intervalPlaceholder')}
                     placeholderTextColor={colors.muted}
                     style={[
                       styles.textInput, 
@@ -91,7 +94,7 @@ export function CustomIntervalModal({
 
                 {/* Two Buttons for the unit: Days vs. Months */}
                 <View style={styles.inputBlock}>
-                  <ThemedText style={styles.label}>Unit</ThemedText>
+                  <ThemedText style={styles.label}>{t('unit')}</ThemedText>
                   <View style={styles.unitButtons}>
                     <TouchableOpacity
                       style={[
@@ -108,7 +111,7 @@ export function CustomIntervalModal({
                         styles.unitButtonText,
                         intervalUnit === 'day' && styles.selectedButtonText
                       ]}>
-                        Days
+                        {t('days')}
                       </ThemedText>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -126,7 +129,7 @@ export function CustomIntervalModal({
                         styles.unitButtonText,
                         intervalUnit === 'month' && styles.selectedButtonText
                       ]}>
-                        Months
+                        {t('months')}
                       </ThemedText>
                     </TouchableOpacity>
                   </View>
@@ -135,10 +138,10 @@ export function CustomIntervalModal({
                 {/* Action buttons: Cancel / Set */}
                 <View style={styles.buttonsRow}>
                   <ThemedButton style={[styles.btn, styles.cancelBtn]} onPress={onCancel}>
-                    Cancel
+                    {t('cancel')}
                   </ThemedButton>
                   <ThemedButton style={[styles.btn, styles.saveBtn]} onPress={handleSet}>
-                    Set
+                    {t('set')}
                   </ThemedButton>
                 </View>
               </ScrollView>

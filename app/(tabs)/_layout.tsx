@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLanguage } from '@/context/LanguageContext';
 
 // Utility function to render tab icons
 function TabBarIcon(props: {
@@ -17,6 +18,7 @@ function TabBarIcon(props: {
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useLanguage();
 
   return (
     <>
@@ -35,28 +37,28 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Dashboard',
+            title: t('dashboard'),
             tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
           }}
         />
         <Tabs.Screen
           name="income"
           options={{
-            title: 'Income',
+            title: t('income'),
             tabBarIcon: ({ color }) => <TabBarIcon name="dollar" color={color} />,
           }}
         />
         <Tabs.Screen
           name="expenses"
           options={{
-            title: 'Expenses',
+            title: t('expenses'),
             tabBarIcon: ({ color }) => <TabBarIcon name="credit-card" color={color} />,
           }}
         />
         <Tabs.Screen
           name="settings"
           options={{
-            title: 'Settings',
+            title: t('settings'),
             tabBarIcon: ({ color }) => <TabBarIcon name="cog" color={color} />,
           }}
         />

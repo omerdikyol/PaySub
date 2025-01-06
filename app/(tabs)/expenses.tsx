@@ -24,6 +24,7 @@ import { MenuModal } from '@/components/Modals/MenuModal';
 import { DeleteConfirmationModal } from '@/components/Modals/DeleteConfirmationModal';
 import { AddExpenseModal } from '@/components/Modals/AddExpenseModal';
 import { FontAwesome } from '@expo/vector-icons';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface GroupedExpenses {
   id: string;
@@ -41,6 +42,7 @@ interface SectionData {
 
 export default function Expense() {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const { expenses, updateExpensePaymentStatus } = useFinance();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
@@ -196,7 +198,7 @@ export default function Expense() {
       <View style={[styles.listHeader, { backgroundColor: colors.background }]}>
         <View style={styles.totalContainer}>
           <ThemedText style={styles.totalText}>
-            Total: {formatInPreferredCurrency(totalInPreferredCurrency)}
+            {t('total')}: {formatInPreferredCurrency(totalInPreferredCurrency)}
           </ThemedText>
           <ThemedText style={styles.originalAmounts}>
             {Object.entries(totalByCurrency)
@@ -310,7 +312,7 @@ export default function Expense() {
             styles.tabText,
             activeTab === 'unpaid' && styles.activeTabText
           ]}>
-            Outstanding
+            {t('outstanding')}
           </ThemedText>
           {unpaid.data.length > 0 && (
             <View style={[styles.badge, { backgroundColor: '#007AFF' }]}>
@@ -329,7 +331,7 @@ export default function Expense() {
             styles.tabText,
             activeTab === 'paid' && styles.activeTabText
           ]}>
-            Paid
+            {t('paid')}
           </ThemedText>
           {paid.data.length > 0 && (
             <View style={[styles.badge, { backgroundColor: '#007AFF' }]}>

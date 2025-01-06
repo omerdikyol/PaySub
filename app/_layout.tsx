@@ -8,6 +8,8 @@ import { useColorScheme } from 'react-native';
 import { FinanceProvider } from '@/context/FinanceContext';
 import { CurrencyProvider } from '@/context/CurrencyContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { NotificationProvider } from '@/context/NotificationContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -45,13 +47,17 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <LanguageProvider>
         <CurrencyProvider>
           <FinanceProvider>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            </Stack>
+            <NotificationProvider>
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              </Stack>
+            </NotificationProvider>
           </FinanceProvider>
         </CurrencyProvider>
+      </LanguageProvider>
     </GestureHandlerRootView>
   );
 }

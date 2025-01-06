@@ -11,6 +11,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { ThemedText, ThemedView } from '../Themed';
 import { useTheme } from '../useTheme';
 import { formatCurrency } from '@/utils/currency';
+import { useLanguage } from '@/context/LanguageContext';
 
 export type BasePayment = {
   id: string;
@@ -40,13 +41,14 @@ export const BasePaymentHistoryModal = ({
   onPaymentToggle
 }: BasePaymentHistoryModalProps) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const groupedPayments = React.useMemo(() => {
     const groups: { [key: string]: BasePayment[] } = {};
     
     payments.forEach(payment => {
       const date = new Date(payment.date);
-      const monthYear = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      const monthYear = date.toLocaleString(t('locale'), { month: 'long', year: 'numeric' });
       
       if (!groups[monthYear]) {
         groups[monthYear] = [];
@@ -58,7 +60,7 @@ export const BasePaymentHistoryModal = ({
       title,
       data
     }));
-  }, [payments]);
+  }, [payments, t]);
 
   const renderPaymentItem = ({ item }: { item: BasePayment }) => {
     const date = new Date(item.date);
@@ -70,13 +72,13 @@ export const BasePaymentHistoryModal = ({
       <View style={styles.paymentItem}>
         <View style={styles.paymentItemLeft}>
           <ThemedText style={styles.paymentDate}>
-            {date.toLocaleDateString('en-US', { 
+            {date.toLocaleDateString(t('locale'), { 
               weekday: 'short', 
               day: 'numeric',
               month: 'short' 
             })}
             {isToday && (
-              <ThemedText style={styles.todayBadge}> • Today</ThemedText>
+              <ThemedText style={styles.todayBadge}> • {t('today')}</ThemedText>
             )}
           </ThemedText>
           <ThemedText style={styles.paymentAmount}>
@@ -92,6 +94,7 @@ export const BasePaymentHistoryModal = ({
               isOverdue ? styles.overdueButton : styles.unpaidButton
             ]}
             onPress={() => onPaymentToggle(item)}
+            accessibilityLabel={isPaid ? t('markAsUnpaid') : t('markAsPaid')}
           >
             <FontAwesome 
               name={isPaid ? "check" : "credit-card"} 
@@ -99,7 +102,7 @@ export const BasePaymentHistoryModal = ({
               color="#fff" 
             />
             <ThemedText style={styles.paymentStatusText}>
-              {isPaid ? 'PAID' : isOverdue ? 'OVERDUE' : 'PAY NOW'}
+              {isPaid ? t('paid') : isOverdue ? t('overdue') : t('payNow')}
             </ThemedText>
           </TouchableOpacity>
         )}
@@ -113,6 +116,7 @@ export const BasePaymentHistoryModal = ({
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      accessibilityLabel={t('paymentHistory')}
     >
       <View style={styles.modalOverlay}>
         <TouchableOpacity
@@ -124,7 +128,7 @@ export const BasePaymentHistoryModal = ({
           <View style={styles.paymentHistoryHeader}>
             <View>
               <ThemedText style={styles.paymentHistoryTitle}>
-                Payment History
+                {t('paymentHistory')}
               </ThemedText>
               <ThemedText style={styles.expenseName}>
                 {selectedItem?.name}
@@ -133,6 +137,7 @@ export const BasePaymentHistoryModal = ({
             <TouchableOpacity
               style={styles.closeButton}
               onPress={onClose}
+              accessibilityLabel={t('close')}
             >
               <FontAwesome name="times" size={24} color={colors.text} />
             </TouchableOpacity>
@@ -142,7 +147,7 @@ export const BasePaymentHistoryModal = ({
             <View style={styles.expenseInfoRow}>
               <View style={styles.expenseInfoItem}>
                 <ThemedText style={styles.expenseInfoLabel}>
-                  Amount
+                  {t('amount')}
                 </ThemedText>
                 <ThemedText style={styles.expenseInfoValue}>
                   {selectedItem && formatCurrency(selectedItem.amount, selectedItem.currency)}
@@ -150,10 +155,10 @@ export const BasePaymentHistoryModal = ({
               </View>
               <View style={styles.expenseInfoItem}>
                 <ThemedText style={styles.expenseInfoLabel}>
-                  Frequency
+                  {t('frequency')}
                 </ThemedText>
                 <ThemedText style={styles.expenseInfoValue}>
-                  {selectedItem?.recurrence?.type || 'One-time'}
+                  {selectedItem?.recurrence?.type ? t(selectedItem.recurrence.type) : t('once')}
                 </ThemedText>
               </View>
             </View>

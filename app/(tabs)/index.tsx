@@ -9,10 +9,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useFinance } from '@/context/FinanceContext';
 import { useRouter } from 'expo-router';
 import { useDashboardCalculations } from '@/hooks/useDashboardCalculations';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function TabOneScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const { t } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   const { incomes, expenses } = useFinance();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -46,8 +48,8 @@ export default function TabOneScreen() {
       {/* Header */}
       <ThemedView style={styles.headerContainer}>
         <View>
-          <ThemedText style={styles.welcomeText}>Welcome back</ThemedText>
-          <ThemedText style={styles.headerTitle}>Dashboard</ThemedText>
+          <ThemedText style={styles.welcomeText}>{t('welcomeBack')}</ThemedText>
+          <ThemedText style={styles.headerTitle}>{t('dashboard')}</ThemedText>
         </View>
         <TouchableOpacity 
           style={styles.settingsButton}
@@ -63,9 +65,9 @@ export default function TabOneScreen() {
           <ThemedCard style={styles.mainCard}>
             <View style={styles.mainCardHeader}>
               <View>
-                <ThemedText style={styles.cardTitle}>Monthly Balance</ThemedText>
+                <ThemedText style={styles.cardTitle}>{t('monthlyBalance')}</ThemedText>
                 <ThemedText style={styles.subtitle}>
-                  {monthlyData.remaining >= 0 ? 'Available to spend' : 'Over budget'}
+                  {monthlyData.remaining >= 0 ? t('availableToSpend') : t('overBudget')}
                 </ThemedText>
               </View>
               <Icon 
@@ -97,7 +99,7 @@ export default function TabOneScreen() {
                 <View style={[styles.iconCircle, { backgroundColor: colors.success + '20' }]}>
                   <Icon name="arrow-down" size={24} color={colors.success} />
                 </View>
-                <ThemedText style={styles.cardLabel}>Income</ThemedText>
+                <ThemedText style={styles.cardLabel}>{t('income')}</ThemedText>
                 <ThemedText style={[styles.amount, styles.smallerAmount]}>
                   {monthlyData.formatInPreferredCurrency(monthlyData.income)}
                 </ThemedText>
@@ -113,7 +115,7 @@ export default function TabOneScreen() {
                 <View style={[styles.iconCircle, { backgroundColor: colors.error + '20' }]}>
                   <Icon name="arrow-up" size={24} color={colors.error} />
                 </View>
-                <ThemedText style={styles.cardLabel}>Expenses</ThemedText>
+                <ThemedText style={styles.cardLabel}>{t('expenses')}</ThemedText>
                 <ThemedText style={[styles.amount, styles.smallerAmount]}>
                   {monthlyData.formatInPreferredCurrency(monthlyData.expenses)}
                 </ThemedText>
@@ -127,7 +129,7 @@ export default function TabOneScreen() {
           >
             <ThemedCard style={[styles.card, styles.debtCard]}>
               <View style={styles.debtHeader}>
-                <ThemedText style={styles.sectionTitle}>Payment Status</ThemedText>
+                <ThemedText style={styles.sectionTitle}>{t('paymentStatus')}</ThemedText>
                 <Icon name="chevron-right" size={24} color={colors.text} />
               </View>
               <View style={styles.debtSection}>
@@ -135,7 +137,7 @@ export default function TabOneScreen() {
                   <View style={[styles.iconCircle, { backgroundColor: colors.error + '20' }]}>
                     <Icon name="clock-outline" size={24} color={colors.error} />
                   </View>
-                  <ThemedText style={styles.debtLabel}>Unpaid</ThemedText>
+                  <ThemedText style={styles.debtLabel}>{t('unpaid')}</ThemedText>
                   <ThemedText style={[styles.debtAmount, { color: colors.error }]}>
                     {monthlyData.formatInPreferredCurrency(monthlyData.unpaid)}
                   </ThemedText>
@@ -145,7 +147,7 @@ export default function TabOneScreen() {
                   <View style={[styles.iconCircle, { backgroundColor: colors.success + '20' }]}>
                     <Icon name="check-circle-outline" size={24} color={colors.success} />
                   </View>
-                  <ThemedText style={styles.debtLabel}>Paid</ThemedText>
+                  <ThemedText style={styles.debtLabel}>{t('paid')}</ThemedText>
                   <ThemedText style={[styles.debtAmount, { color: colors.success }]}>
                     {monthlyData.formatInPreferredCurrency(monthlyData.paid)}
                   </ThemedText>

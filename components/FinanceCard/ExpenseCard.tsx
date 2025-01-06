@@ -12,6 +12,7 @@ import { ThemedText } from '../Themed';
 import { useTheme } from '../useTheme';
 import { BaseCard, BaseFinanceItem } from './BaseCard';
 import { formatCurrency } from '@/utils/currency';
+import { useLanguage } from '@/context/LanguageContext';
 
 export interface ExpenseItem extends BaseFinanceItem {
   originalExpense: {
@@ -54,6 +55,7 @@ export const ExpenseCard = ({
   swipeableRef 
 }: ExpenseCardProps) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   
   // Transform the ExpenseItem into BaseFinanceItem
   const baseItem: BaseFinanceItem = {
@@ -160,7 +162,7 @@ export const ExpenseCard = ({
               onPress={handlePaymentButtonClick}
             >
               <FontAwesome name="check" size={12} color="#fff" />
-              <ThemedText style={styles.paidText}>PAID</ThemedText>
+              <ThemedText style={styles.paidText}>{t('paid')}</ThemedText>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -178,7 +180,7 @@ export const ExpenseCard = ({
                 style={styles.payButtonIcon}
               />
               <ThemedText style={[styles.payButtonText, { color: '#fff' }]}>
-                Pay Now
+                {t('payNow')}
               </ThemedText>
             </TouchableOpacity>
           )}

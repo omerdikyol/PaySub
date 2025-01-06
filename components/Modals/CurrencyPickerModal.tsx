@@ -3,6 +3,7 @@ import { Modal, StyleSheet, ScrollView, TouchableOpacity, View } from 'react-nat
 import { ThemedView, ThemedText } from '../Themed';
 import { useTheme } from '../useTheme';
 import { currencies } from '@/utils/currency';
+import { useLanguage } from '@/context/LanguageContext';
 
 // Add frequently used currencies after TRY
 const FREQUENT_CURRENCIES = ['TRY', 'USD', 'EUR', 'GBP'];
@@ -16,6 +17,7 @@ interface CurrencyPickerModalProps {
 
 export function CurrencyPickerModal({ visible, onClose, onSelect, selectedCurrency }: CurrencyPickerModalProps) {
   const { colors, colorScheme } = useTheme();
+  const { t } = useLanguage();
 
   // Sort currencies with TRY first, then frequent ones, then the rest
   const sortedCurrencies = Object.values(currencies).sort((a, b) => {
@@ -29,7 +31,7 @@ export function CurrencyPickerModal({ visible, onClose, onSelect, selectedCurren
     if (aIndex !== -1) return -1;
     if (bIndex !== -1) return 1;
     
-    return a.name.localeCompare(b.name);
+    return t(`currency_${a.code.toLowerCase()}`).localeCompare(t(`currency_${b.code.toLowerCase()}`));
   });
 
   return (
@@ -38,6 +40,7 @@ export function CurrencyPickerModal({ visible, onClose, onSelect, selectedCurren
       transparent={true}
       animationType="fade"
       onRequestClose={onClose}
+      accessibilityLabel={t('selectCurrency')}
     >
       <TouchableOpacity 
         style={styles.modalOverlay}
@@ -59,6 +62,7 @@ export function CurrencyPickerModal({ visible, onClose, onSelect, selectedCurren
                   FREQUENT_CURRENCIES.includes(currencyItem.code) && styles.frequentCurrency
                 ]}
                 onPress={() => onSelect(currencyItem.code)}
+                accessibilityLabel={t(`currency_${currencyItem.code.toLowerCase()}`)}
               >
                 <View style={styles.currencyOptionContent}>
                   <ThemedText style={styles.currencyFlag}>{currencyItem.flag}</ThemedText>
@@ -67,7 +71,7 @@ export function CurrencyPickerModal({ visible, onClose, onSelect, selectedCurren
                       {currencyItem.code}
                     </ThemedText>
                     <ThemedText style={styles.currencyName}>
-                      {currencyItem.name}
+                      {t(`currency_${currencyItem.code.toLowerCase()}`)}
                     </ThemedText>
                   </View>
                   <ThemedText style={styles.currencySymbol}>

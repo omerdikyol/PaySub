@@ -18,6 +18,7 @@ import { IncomeItem, RecurrenceType } from '@/app/types/income';
 import { currencies, displayToNumeric } from '@/utils/currency';
 import { CurrencyInput } from '../CurrencyInput';
 import { FontAwesome } from '@expo/vector-icons';
+import { useLanguage } from '@/context/LanguageContext';
 
 const COLORS = [
   '#007AFF', // Blue (Primary)
@@ -50,6 +51,7 @@ export function AddIncomeModal({
   initialIncome
 }: AddIncomeModalProps) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   // Fields
   const [amount, setAmount] = useState('0,00');
@@ -214,7 +216,7 @@ export function AddIncomeModal({
             {/* Header */}
             <View style={styles.headerRow}>
               <ThemedText style={styles.title}>
-                {initialIncome ? 'Edit Income' : 'Add New Income'}
+                {initialIncome ? t('editIncome') : t('addNewIncome')}
               </ThemedText>
             </View>
 
@@ -231,8 +233,8 @@ export function AddIncomeModal({
                       <FontAwesome name="money" size={16} color="#007AFF" />
                     </View>
                     <View>
-                      <ThemedText style={styles.sectionTitle}>Amount</ThemedText>
-                      <ThemedText style={styles.sectionSubtitle}>Enter income amount and currency</ThemedText>
+                      <ThemedText style={styles.sectionTitle}>{t('amount')}</ThemedText>
+                      <ThemedText style={styles.sectionSubtitle}>{t('enterIncomeAmount')}</ThemedText>
                     </View>
                   </View>
                 </View>
@@ -256,8 +258,8 @@ export function AddIncomeModal({
                       <FontAwesome name="tag" size={16} color="#007AFF" />
                     </View>
                     <View>
-                      <ThemedText style={styles.sectionTitle}>Name</ThemedText>
-                      <ThemedText style={styles.sectionSubtitle}>Give your income a name</ThemedText>
+                      <ThemedText style={styles.sectionTitle}>{t('name')}</ThemedText>
+                      <ThemedText style={styles.sectionSubtitle}>{t('enterIncomeName')}</ThemedText>
                     </View>
                   </View>
                 </View>
@@ -266,7 +268,7 @@ export function AddIncomeModal({
                     label=""
                     value={name}
                     onChangeText={setName}
-                    placeholder="Enter income name"
+                    placeholder={t('enterIncomeName')}
                     style={[styles.input, { marginBottom: 0 }]}
                   />
                 </View>
@@ -282,8 +284,8 @@ export function AddIncomeModal({
                       <FontAwesome name="repeat" size={16} color="#007AFF" />
                     </View>
                     <View>
-                      <ThemedText style={styles.sectionTitle}>Recurrence</ThemedText>
-                      <ThemedText style={styles.sectionSubtitle}>How often this income repeats</ThemedText>
+                      <ThemedText style={styles.sectionTitle}>{t('recurrence')}</ThemedText>
+                      <ThemedText style={styles.sectionSubtitle}>{t('recurrenceDescription')}</ThemedText>
                     </View>
                   </View>
                 </View>
@@ -294,10 +296,8 @@ export function AddIncomeModal({
                   >
                     <ThemedText style={styles.recurrenceText}>
                       {recurrenceType === 'custom'
-                        ? `Custom: every ${customInterval} ${
-                            intervalUnit === 'day' ? 'days' : 'months'
-                          }`
-                        : recurrenceType.charAt(0).toUpperCase() + recurrenceType.slice(1)}
+                        ? `${t('custom')} (${customInterval} ${t(intervalUnit === 'day' ? 'days' : 'months')})`
+                        : t(recurrenceType)}
                     </ThemedText>
                     <FontAwesome name="chevron-down" size={12} color={colors.text} />
                   </TouchableOpacity>
@@ -314,8 +314,8 @@ export function AddIncomeModal({
                       <FontAwesome name="calendar" size={16} color="#007AFF" />
                     </View>
                     <View>
-                      <ThemedText style={styles.sectionTitle}>Dates</ThemedText>
-                      <ThemedText style={styles.sectionSubtitle}>Set start and end dates</ThemedText>
+                      <ThemedText style={styles.sectionTitle}>{t('dates')}</ThemedText>
+                      <ThemedText style={styles.sectionSubtitle}>{t('setDates')}</ThemedText>
                     </View>
                   </View>
                 </View>
@@ -323,7 +323,7 @@ export function AddIncomeModal({
                   <View style={styles.dateRow}>
                     {/* START DATE */}
                     <View style={styles.dateCol}>
-                      <ThemedText style={styles.label}>Start Date</ThemedText>
+                      <ThemedText style={styles.label}>{t('startDate')}</ThemedText>
                       <TouchableOpacity
                         style={[styles.dateButton, { borderColor: colors.border }]}
                         onPress={() => setStartPickerVisible(true)}
@@ -335,7 +335,7 @@ export function AddIncomeModal({
                     {/* END DATE (optional for recurring) */}
                     {recurrenceType !== 'once' && (
                       <View style={styles.dateCol}>
-                        <ThemedText style={styles.label}>End Date</ThemedText>
+                        <ThemedText style={styles.label}>{t('endDate')}</ThemedText>
                         {endDate ? (
                           <>
                             <TouchableOpacity
@@ -349,7 +349,7 @@ export function AddIncomeModal({
                               textStyle={styles.buttonText}
                               onPress={() => setEndDate(null)}
                             >
-                              Clear
+                              {t('clear')}
                             </ThemedButton>
                           </>
                         ) : (
@@ -361,7 +361,7 @@ export function AddIncomeModal({
                               if (!endDate) setEndDate(new Date());
                             }}
                           >
-                            Set End Date
+                            {t('setEndDate')}
                           </ThemedButton>
                         )}
                       </View>
@@ -380,8 +380,8 @@ export function AddIncomeModal({
                       <FontAwesome name="paint-brush" size={16} color="#007AFF" />
                     </View>
                     <View>
-                      <ThemedText style={styles.sectionTitle}>Color</ThemedText>
-                      <ThemedText style={styles.sectionSubtitle}>Choose a color for this income</ThemedText>
+                      <ThemedText style={styles.sectionTitle}>{t('color')}</ThemedText>
+                      <ThemedText style={styles.sectionSubtitle}>{t('chooseIncomeColor')}</ThemedText>
                     </View>
                   </View>
                 </View>
@@ -413,14 +413,14 @@ export function AddIncomeModal({
                 textStyle={styles.buttonText}
                 onPress={handleCancel}
               >
-                Cancel
+                {t('cancel')}
               </ThemedButton>
               <ThemedButton 
                 style={[styles.footerBtn, styles.saveBtn]}
                 textStyle={styles.buttonText}
                 onPress={handleSave}
               >
-                Save
+                {t('save')}
               </ThemedButton>
             </View>
           </ThemedView>
@@ -452,7 +452,7 @@ export function AddIncomeModal({
           >
             <SafeAreaView style={styles.sheetBackdrop}>
               <View style={[styles.sheetContainer, { backgroundColor: colors.card.background }]}>
-                <ThemedText style={styles.sheetTitle}>Choose Recurrence</ThemedText>
+                <ThemedText style={styles.sheetTitle}>{t('recurrence')}</ThemedText>
                 {(['once', 'daily', 'weekly', 'monthly', 'yearly', 'custom'] as RecurrenceType[]).map(
                   (item) => (
                     <TouchableOpacity
@@ -461,13 +461,13 @@ export function AddIncomeModal({
                       onPress={() => handleRecurrenceSelect(item)}
                     >
                       <ThemedText style={styles.recurrenceItemText}>
-                        {item.charAt(0).toUpperCase() + item.slice(1)}
+                        {t(item)}
                       </ThemedText>
                     </TouchableOpacity>
                   )
                 )}
                 <TouchableOpacity style={styles.sheetCancel} onPress={closeRecurrenceSheet}>
-                  <ThemedText style={{ color: '#FF3B30' }}>Cancel</ThemedText>
+                  <ThemedText style={{ color: '#FF3B30' }}>{t('cancel')}</ThemedText>
                 </TouchableOpacity>
               </View>
             </SafeAreaView>
@@ -495,14 +495,14 @@ export function AddIncomeModal({
               onPress={() => setErrorMessage(null)}
             >
               <ThemedView style={[styles.errorCard, { backgroundColor: colors.card.background }]}>
-                <ThemedText style={styles.errorTitle}>Required Field</ThemedText>
+                <ThemedText style={styles.errorTitle}>{t('error')}</ThemedText>
                 <ThemedText style={styles.errorMessage}>{errorMessage}</ThemedText>
                 <ThemedButton 
                   style={styles.errorButton}
                   textStyle={styles.buttonText}
                   onPress={() => setErrorMessage(null)}
                 >
-                  OK
+                  {t('ok')}
                 </ThemedButton>
               </ThemedView>
             </TouchableOpacity>

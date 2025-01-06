@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert, Linking, Share, Modal, SafeAreaView } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useColorScheme } from '@/components/useColorScheme';
 import { ThemedView, ThemedText, ThemedSection, ThemedButton } from '@/components/Themed';
@@ -12,6 +12,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CurrencyPickerModal } from '@/components/Modals/CurrencyPickerModal';
 import { currencies } from '@/utils/currency';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useNotifications } from '@/context/NotificationContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { Language } from '@/constants/Translations';
 
 interface SettingSectionProps {
     title: string;
@@ -40,21 +43,44 @@ const SettingSection: React.FC<SettingSectionProps> = ({ title, children }) => {
     );
 };
 
-const SettingRow: React.FC<SettingRowProps> = ({ label, children }) => {
+const SettingRow: React.FC<SettingRowProps & { onPress?: () => void; icon?: React.ReactNode }> = ({ 
+    label, 
+    children, 
+    onPress,
+    icon 
+}) => {
     const colorScheme = useColorScheme();
-    return (
-        <View style={styles.row}>
-            <Text style={[styles.label, { color: Colors[colorScheme].text }]}>{label}</Text>
-            {children}
-        </View>
+    const content = (
+        <>
+            <View style={styles.row}>
+                {icon && <View style={styles.iconContainer}>{icon}</View>}
+                <Text style={[styles.label, { color: Colors[colorScheme].text }]}>{label}</Text>
+                <View style={styles.settingControl}>
+                    {children}
+                </View>
+            </View>
+            <View style={[styles.divider, { backgroundColor: Colors[colorScheme].border }]} />
+        </>
     );
+
+    if (onPress) {
+        return (
+            <TouchableOpacity onPress={onPress}>
+                {content}
+            </TouchableOpacity>
+        );
+    }
+
+    return content;
 };
 
 export default function Settings() {
     const colorScheme = useColorScheme();
     const { colors } = useTheme();
-    const [notifications, setNotifications] = useState(true);
+    const { notificationsEnabled, setNotificationsEnabled } = useNotifications();
+    const { language, setLanguage, t } = useLanguage();
     const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+    const [showLanguagePicker, setShowLanguagePicker] = useState(false);
     const { preferredCurrency, setPreferredCurrency } = useCurrency();
 
     useEffect(() => {
@@ -69,6 +95,33 @@ export default function Settings() {
             }
         } catch (error) {
             console.error('Error loading preferred currency:', error);
+        }
+    };
+
+    const handleNotificationChange = async (value: boolean) => {
+        try {
+            if (value) {
+                const hasPermission = await NotificationService.requestPermissions();
+                if (!hasPermission) {
+                    Alert.alert(
+                        t('permissionRequired'),
+                        t('enableNotificationsMessage'),
+                        [
+                            { text: t('cancel'), style: 'cancel' },
+                            { text: t('openSettings'), onPress: () => Linking.openSettings() }
+                        ]
+                    );
+                    return;
+                }
+            } else {
+                await NotificationService.cancelAllNotifications();
+            }
+
+            await NotificationService.setNotificationsEnabled(value);
+            await setNotificationsEnabled(value);
+        } catch (error) {
+            console.error('Error updating notification settings:', error);
+            Alert.alert(t('error'), t('notificationUpdateError'));
         }
     };
 
@@ -88,13 +141,13 @@ export default function Settings() {
         try {
             const hasPermission = await NotificationService.requestPermissions();
             if (!hasPermission) {
-                Alert.alert('Permission Required', 'Please enable notifications in your device settings to test notifications.');
+                Alert.alert(t('permissionRequired'), t('enableNotificationsMessage'));
                 return;
             }
 
             const testExpense = {
                 id: 'test-expense-' + Date.now(),
-                name: 'Test Expense',
+                name: t('testExpense'),
                 amount: 99.99,
                 currency: 'USD',
                 startDate: new Date().toISOString(),
@@ -114,10 +167,10 @@ export default function Settings() {
             };
 
             await NotificationService.testNotification(testExpense);
-            Alert.alert('Success', 'Test notification sent! You should receive it shortly.');
+            Alert.alert(t('success'), t('testNotificationSent'));
         } catch (error) {
             console.error('Failed to send test notification:', error);
-            Alert.alert('Error', 'Failed to send test notification. Please try again.');
+            Alert.alert(t('error'), t('testNotificationError'));
         }
     };
 
@@ -125,7 +178,7 @@ export default function Settings() {
         try {
             const hasPermission = await NotificationService.requestPermissions();
             if (!hasPermission) {
-                Alert.alert('Permission Required', 'Please enable notifications in your device settings to test notifications.');
+                Alert.alert(t('permissionRequired'), t('enableNotificationsMessage'));
                 return;
             }
 
@@ -135,7 +188,7 @@ export default function Settings() {
 
             const testExpense = {
                 id: 'test-scheduled-expense-' + Date.now(),
-                name: 'Tomorrow\'s Test Expense',
+                name: t('tomorrowTestExpense'),
                 amount: 149.99,
                 currency: 'USD',
                 startDate: tomorrow.toISOString(),
@@ -155,15 +208,12 @@ export default function Settings() {
             };
 
             await NotificationService.testScheduledNotification(testExpense, 1);
-            Alert.alert(
-                'Success', 
-                'Scheduled a test notification for 1 minute from now. This simulates getting a notification for tomorrow\'s expense.'
-            );
+            Alert.alert(t('success'), t('scheduledNotificationSent'));
 
             await NotificationService.scheduleExpenseNotification(testExpense);
         } catch (error) {
             console.error('Failed to schedule test notification:', error);
-            Alert.alert('Error', 'Failed to schedule test notification. Please try again.');
+            Alert.alert(t('error'), t('scheduledNotificationError'));
         }
     };
 
@@ -171,27 +221,54 @@ export default function Settings() {
         try {
             const scheduledNotifications = await NotificationService.getAllScheduledNotifications();
             Alert.alert(
-                'Scheduled Notifications',
-                `You have ${scheduledNotifications.length} scheduled notification(s).\n\n` +
+                t('scheduledNotifications'),
+                t('scheduledNotificationsCount').replace('{count}', scheduledNotifications.length.toString()) + '\n\n' +
                 scheduledNotifications.map((notification, index) => {
                     const trigger = notification.trigger as any;
                     const date = new Date(trigger.value);
-                    return `${index + 1}. "${notification.content.title}" scheduled for ${date.toLocaleString()}`;
+                    return `${index + 1}. "${notification.content.title}" ${t('scheduledFor')} ${date.toLocaleString()}`;
                 }).join('\n\n')
             );
         } catch (error) {
             console.error('Failed to get scheduled notifications:', error);
-            Alert.alert('Error', 'Failed to get scheduled notifications. Please try again.');
+            Alert.alert(t('error'), t('getScheduledNotificationsError'));
         }
+    };
+
+    const handleShareApp = async () => {
+        try {
+            await Share.share({
+                message: t('shareMessage'),
+                url: 'https://paysub.app',
+            });
+        } catch (error) {
+            console.error('Error sharing app:', error);
+        }
+    };
+
+    const handleExportData = async () => {
+        Alert.alert(t('comingSoon'), t('dataExportMessage'));
+    };
+
+    const handleImportData = async () => {
+        Alert.alert(t('comingSoon'), t('dataImportMessage'));
+    };
+
+    const handleLanguageChange = async (newLanguage: Language) => {
+        await setLanguage(newLanguage);
+        setShowLanguagePicker(false);
     };
 
     return (
         <ScreenLayout>
             <ScrollView style={styles.container}>
-                <ThemedText style={styles.header}>Settings</ThemedText>
+                <ThemedText style={styles.header}>{t('settings')}</ThemedText>
 
-                <SettingSection title="Appearance">
-                    <SettingRow label="Dark Mode">
+                <SettingSection title={t('appearance')}>
+                    <SettingRow 
+                        label={t('darkMode')}
+                        icon={<FontAwesome name="moon-o" size={20} color="#6C63FF" />}
+                    >
                         <Switch
                             value={colorScheme === 'dark'}
                             onValueChange={handleThemeChange}
@@ -200,16 +277,29 @@ export default function Settings() {
                             ios_backgroundColor="#767577"
                         />
                     </SettingRow>
+                    <SettingRow 
+                        label={t('language')}
+                        icon={<FontAwesome name="language" size={20} color="#4CAF50" />}
+                        onPress={() => setShowLanguagePicker(true)}
+                    >
+                        <View style={styles.settingValue}>
+                            <ThemedText style={styles.settingText}>
+                                {language === 'en' ? 'English' : 'Türkçe'}
+                            </ThemedText>
+                            <FontAwesome name="chevron-right" size={12} color={colors.text} />
+                        </View>
+                    </SettingRow>
                 </SettingSection>
 
-                <SettingSection title="Preferences">
-                    <SettingRow label="Currency">
-                        <TouchableOpacity 
-                            style={styles.currencyDisplay}
-                            onPress={() => setShowCurrencyPicker(true)}
-                        >
+                <SettingSection title={t('preferences')}>
+                    <SettingRow 
+                        label={t('currency')}
+                        icon={<FontAwesome name="money" size={20} color="#FFC107" />}
+                        onPress={() => setShowCurrencyPicker(true)}
+                    >
+                        <View style={styles.settingValue}>
                             <View style={styles.currencyInfo}>
-                                <ThemedText style={styles.currencyText}>
+                                <ThemedText style={styles.settingText}>
                                     {currencies[preferredCurrency].flag} {preferredCurrency}
                                 </ThemedText>
                                 <ThemedText style={styles.currencySymbol}>
@@ -217,12 +307,15 @@ export default function Settings() {
                                 </ThemedText>
                             </View>
                             <FontAwesome name="chevron-right" size={12} color={colors.text} />
-                        </TouchableOpacity>
+                        </View>
                     </SettingRow>
-                    <SettingRow label="Notifications">
+                    <SettingRow 
+                        label={t('notifications')}
+                        icon={<FontAwesome name="bell" size={20} color="#FF5722" />}
+                    >
                         <Switch
-                            value={notifications}
-                            onValueChange={setNotifications}
+                            value={notificationsEnabled}
+                            onValueChange={handleNotificationChange}
                             trackColor={{ false: '#767577', true: colors.primary }}
                             thumbColor="#ffffff"
                             ios_backgroundColor="#767577"
@@ -230,31 +323,75 @@ export default function Settings() {
                     </SettingRow>
                 </SettingSection>
 
-                <SettingSection title="Notification Testing">
+                <SettingSection title={t('dataManagement')}>
+                    <SettingRow 
+                        label={t('exportData')}
+                        icon={<FontAwesome name="download" size={20} color="#2196F3" />}
+                        onPress={handleExportData}
+                    >
+                        <FontAwesome name="chevron-right" size={12} color={colors.text} />
+                    </SettingRow>
+                    <SettingRow 
+                        label={t('importData')}
+                        icon={<FontAwesome name="upload" size={20} color="#9C27B0" />}
+                        onPress={handleImportData}
+                    >
+                        <FontAwesome name="chevron-right" size={12} color={colors.text} />
+                    </SettingRow>
+                </SettingSection>
+
+                <SettingSection title={t('about')}>
+                    <SettingRow 
+                        label={t('shareApp')}
+                        icon={<FontAwesome name="share-alt" size={20} color="#00BCD4" />}
+                        onPress={handleShareApp}
+                    >
+                        <FontAwesome name="chevron-right" size={12} color={colors.text} />
+                    </SettingRow>
+                    <SettingRow 
+                        label={t('userAgreement')}
+                        icon={<FontAwesome name="file-text-o" size={20} color="#3F51B5" />}
+                        onPress={() => Linking.openURL('https://paysub.app/terms')}
+                    >
+                        <FontAwesome name="chevron-right" size={12} color={colors.text} />
+                    </SettingRow>
+                    <SettingRow 
+                        label={t('followTwitter')}
+                        icon={<FontAwesome name="twitter" size={20} color="#1DA1F2" />}
+                        onPress={() => Linking.openURL('https://twitter.com/paysubapp')}
+                    >
+                        <FontAwesome name="chevron-right" size={12} color={colors.text} />
+                    </SettingRow>
+                </SettingSection>
+
+                <SettingSection title={t('notificationTesting')}>
                     <ThemedView style={styles.testSection}>
                         <ThemedText style={styles.testDescription}>
-                            Test the notification system with different scenarios.
+                            {t('testDescription')}
                         </ThemedText>
                         
                         <ThemedButton
                             style={[styles.testButton, { marginBottom: 12 }]}
+                            textStyle={styles.buttonText}
                             onPress={handleTestNotification}
                         >
-                            Send Immediate Test Notification
+                            {t('sendTestNotification')}
                         </ThemedButton>
 
                         <ThemedButton
                             style={[styles.testButton, { marginBottom: 12 }]}
+                            textStyle={styles.buttonText}
                             onPress={handleTestScheduledNotification}
                         >
-                            Test Tomorrow's Expense Notification
+                            {t('testTomorrowNotification')}
                         </ThemedButton>
 
                         <ThemedButton
                             style={[styles.testButton, { backgroundColor: colors.card.subtle }]}
+                            textStyle={styles.buttonText}
                             onPress={handleViewScheduledNotifications}
                         >
-                            View Scheduled Notifications
+                            {t('viewScheduledNotifications')}
                         </ThemedButton>
                     </ThemedView>
                 </SettingSection>
@@ -266,6 +403,49 @@ export default function Settings() {
                 onSelect={handleCurrencyChange}
                 selectedCurrency={preferredCurrency}
             />
+
+            <Modal
+                visible={showLanguagePicker}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowLanguagePicker(false)}
+            >
+                <SafeAreaView style={styles.sheetBackdrop}>
+                    <View style={[styles.sheetContainer, { backgroundColor: colors.card.background }]}>
+                        <ThemedText style={styles.sheetTitle}>{t('language')}</ThemedText>
+                        <TouchableOpacity
+                            style={styles.sheetItem}
+                            onPress={() => handleLanguageChange('en')}
+                        >
+                            <ThemedText style={[
+                                styles.languageItemText,
+                                language === 'en' && { color: colors.primary }
+                            ]}>
+                                English
+                                {language === 'en' && ' ✓'}
+                            </ThemedText>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.sheetItem}
+                            onPress={() => handleLanguageChange('tr')}
+                        >
+                            <ThemedText style={[
+                                styles.languageItemText,
+                                language === 'tr' && { color: colors.primary }
+                            ]}>
+                                Türkçe
+                                {language === 'tr' && ' ✓'}
+                            </ThemedText>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={styles.sheetCancel} 
+                            onPress={() => setShowLanguagePicker(false)}
+                        >
+                            <ThemedText style={{ color: '#FF3B30' }}>{t('cancel')}</ThemedText>
+                        </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
+            </Modal>
         </ScreenLayout>
     );
 }
@@ -285,6 +465,9 @@ const styles = StyleSheet.create({
     },
     sectionContent: {
         width: '100%',
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
     },
     sectionTitle: {
         fontSize: 18,
@@ -293,29 +476,36 @@ const styles = StyleSheet.create({
     },
     row: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: 16,
         paddingHorizontal: 16,
+        backgroundColor: 'transparent',
+    },
+    iconContainer: {
+        width: 32,
+        marginRight: 12,
+        alignItems: 'center',
     },
     label: {
         fontSize: 16,
+        flex: 1,
     },
-    buttonText: {
-        fontSize: 16,
+    settingControl: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
-    currencyDisplay: {
+    settingValue: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
+    },
+    settingText: {
+        fontSize: 16,
     },
     currencyInfo: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-    },
-    currencyText: {
-        fontSize: 16,
     },
     currencySymbol: {
         fontSize: 16,
@@ -334,5 +524,41 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: 'center',
+    },
+    buttonText: {
+        fontSize: 16,
+    },
+    divider: {
+        height: 1,
+        marginLeft: 60,
+        marginRight: 16,
+    },
+    languageItemText: {
+        fontSize: 18,
+    },
+    sheetBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    sheetContainer: {
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+    },
+    sheetTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 10,
+    },
+    sheetItem: {
+        paddingVertical: 12,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: '#ccc',
+    },
+    sheetCancel: {
+        alignSelf: 'center',
+        marginTop: 12,
+        paddingVertical: 8,
     },
 });

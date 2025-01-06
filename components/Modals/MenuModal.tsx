@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Modal, TouchableOpacity, View } from 'react-native';
 import { ThemedText, ThemedView } from '../Themed';
 import { useTheme } from '../useTheme';
+import { useLanguage } from '@/context/LanguageContext';
 
 type MenuModalProps = {
   visible: boolean;
@@ -12,6 +13,7 @@ type MenuModalProps = {
 
 export const MenuModal = ({ visible, onClose, onEdit, onDelete }: MenuModalProps) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   return (
     <Modal
@@ -19,6 +21,7 @@ export const MenuModal = ({ visible, onClose, onEdit, onDelete }: MenuModalProps
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      accessibilityLabel={t('menuOptions')}
     >
       <TouchableOpacity
         style={styles.modalOverlay}
@@ -26,14 +29,19 @@ export const MenuModal = ({ visible, onClose, onEdit, onDelete }: MenuModalProps
         onPress={onClose}
       >
         <ThemedView style={[styles.menuModal, { backgroundColor: colors.card.background }]}>
-          <TouchableOpacity style={styles.menuOption} onPress={onEdit}>
-            <ThemedText>Edit</ThemedText>
+          <TouchableOpacity 
+            style={styles.menuOption} 
+            onPress={onEdit}
+            accessibilityLabel={t('edit')}
+          >
+            <ThemedText style={styles.menuText}>{t('edit')}</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.menuOption, styles.deleteOption]}
             onPress={onDelete}
+            accessibilityLabel={t('delete')}
           >
-            <ThemedText style={{ color: colors.error }}>Delete</ThemedText>
+            <ThemedText style={[styles.menuText, { color: colors.error }]}>{t('delete')}</ThemedText>
           </TouchableOpacity>
         </ThemedView>
       </TouchableOpacity>
@@ -65,5 +73,8 @@ const styles = StyleSheet.create({
   },
   deleteOption: {
     borderBottomWidth: 0
+  },
+  menuText: {
+    fontSize: 16
   }
 }); 

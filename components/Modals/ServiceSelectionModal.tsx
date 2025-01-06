@@ -11,6 +11,7 @@ import { ThemedView, ThemedText } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
 import { SubscriptionService, PREDEFINED_SERVICES } from '@/app/types/service';
 import { FontAwesome } from '@expo/vector-icons';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface ServiceSelectionModalProps {
     visible: boolean;
@@ -24,11 +25,13 @@ export function ServiceSelectionModal({
     onSelect
 }: ServiceSelectionModalProps) {
     const { colors } = useTheme();
+    const { t } = useLanguage();
 
     const renderServiceItem = ({ item }: { item: SubscriptionService }) => (
         <TouchableOpacity
             style={styles.serviceItem}
             onPress={() => onSelect(item)}
+            accessibilityLabel={t('selectService', { service: item.name })}
         >
             <Image source={item.logo} style={styles.serviceLogo} />
             <ThemedText style={styles.serviceName}>{item.name}</ThemedText>
@@ -37,13 +40,14 @@ export function ServiceSelectionModal({
 
     const renderCategory = ({ item }: { item: ServiceCategory }) => (
         <View style={styles.categoryContainer}>
-            <ThemedText style={styles.categoryTitle}>{item.name}</ThemedText>
+            <ThemedText style={styles.categoryTitle}>{t(`category_${item.id}`)}</ThemedText>
             <View style={styles.servicesGrid}>
                 {item.services.map((service) => (
                     <TouchableOpacity
                         key={service.id}
                         style={styles.serviceItem}
                         onPress={() => onSelect(service)}
+                        accessibilityLabel={t('selectService', { service: service.name })}
                     >
                         <Image source={service.logo} style={styles.serviceLogo} />
                         <ThemedText style={styles.serviceName}>{service.name}</ThemedText>
@@ -59,12 +63,16 @@ export function ServiceSelectionModal({
             animationType="slide"
             transparent={true}
             onRequestClose={onClose}
+            accessibilityLabel={t('selectSubscriptionService')}
         >
             <View style={styles.modalOverlay}>
                 <ThemedView style={[styles.container, { backgroundColor: colors.card.background }]}>
                     <View style={styles.header}>
-                        <ThemedText style={styles.title}>Select Service</ThemedText>
-                        <TouchableOpacity onPress={onClose}>
+                        <ThemedText style={styles.title}>{t('selectService')}</ThemedText>
+                        <TouchableOpacity 
+                            onPress={onClose}
+                            accessibilityLabel={t('close')}
+                        >
                             <FontAwesome name="times" size={24} color={colors.text} />
                         </TouchableOpacity>
                     </View>
@@ -72,9 +80,10 @@ export function ServiceSelectionModal({
                     <TouchableOpacity
                         style={styles.defaultOption}
                         onPress={() => onSelect(null)}
+                        accessibilityLabel={t('addCustomExpense')}
                     >
                         <FontAwesome name="plus" size={24} color={colors.text} />
-                        <ThemedText style={styles.defaultText}>Add Expense</ThemedText>
+                        <ThemedText style={styles.defaultText}>{t('addCustomExpense')}</ThemedText>
                     </TouchableOpacity>
 
                     <FlatList

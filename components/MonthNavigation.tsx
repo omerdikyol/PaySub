@@ -3,6 +3,7 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { ThemedText } from './Themed';
 import { useTheme } from './useTheme';
+import { useLanguage } from '@/context/LanguageContext';
 
 type MonthNavigationProps = {
   currentDate: Date;
@@ -11,6 +12,7 @@ type MonthNavigationProps = {
 
 export const MonthNavigation = ({ currentDate, onMonthChange }: MonthNavigationProps) => {
   const { colors } = useTheme();
+  const { language } = useLanguage();
 
   const handlePrevMonth = () => {
     const newDate = new Date(currentDate);
@@ -27,13 +29,13 @@ export const MonthNavigation = ({ currentDate, onMonthChange }: MonthNavigationP
   const getNextMonthName = () => {
     const nextMonth = new Date(currentDate);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
-    return nextMonth.toLocaleString('default', { month: 'short' });
+    return nextMonth.toLocaleString(language, { month: 'short' });
   };
 
   const getPrevMonthName = () => {
     const prevMonth = new Date(currentDate);
     prevMonth.setMonth(prevMonth.getMonth() - 1);
-    return prevMonth.toLocaleString('default', { month: 'short' });
+    return prevMonth.toLocaleString(language, { month: 'short' });
   };
 
   return (
@@ -47,7 +49,7 @@ export const MonthNavigation = ({ currentDate, onMonthChange }: MonthNavigationP
       </TouchableOpacity>
 
       <ThemedText style={styles.currentMonth}>
-        {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+        {currentDate.toLocaleString(language, { month: 'long', year: 'numeric' })}
       </ThemedText>
 
       <TouchableOpacity

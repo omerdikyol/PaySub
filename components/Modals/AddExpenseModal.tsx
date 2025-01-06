@@ -10,7 +10,8 @@ import {
   Keyboard,
   SafeAreaView,
   Switch,
-  TextInput
+  TextInput,
+  Alert
 } from 'react-native';
 import { ThemedView, ThemedText, ThemedButton, ThemedInput } from '../Themed';
 import { useTheme } from '../useTheme';
@@ -24,6 +25,8 @@ import { ServiceSelectionModal } from './ServiceSelectionModal';
 import { SubscriptionService } from '../../app/types/service';
 import { NotificationSettings } from '../../app/types/notification';
 import { NotificationService } from '../../services/NotificationService';
+import { useNotifications } from '@/context/NotificationContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 const COLORS = [
   '#007AFF', // Blue (Primary)
@@ -56,6 +59,8 @@ export function AddExpenseModal({
   initialExpense
 }: AddExpenseModalProps) {
   const { colors } = useTheme();
+  const { notificationsEnabled } = useNotifications();
+  const { t } = useLanguage();
 
   // Fields
   const [amount, setAmount] = useState('0,00');
@@ -67,6 +72,7 @@ export function AddExpenseModal({
   // Pickers
   const [startPickerVisible, setStartPickerVisible] = useState(false);
   const [endPickerVisible, setEndPickerVisible] = useState(false);
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
 
   // Recurrence
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('once');
@@ -86,42 +92,27 @@ export function AddExpenseModal({
 
   // Notification settings
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
-    enabled: true,
+    enabled: notificationsEnabled,
     daysInAdvance: 1,
     time: {
       hour: 12,
-      minute: 30
+      minute: 0
     }
   });
 
-  // Add a new state for time picker
-  const [timePickerVisible, setTimePickerVisible] = useState(false);
-
-  // Update price handling functions
-  const formatPriceForDisplay = (price: number): string => {
-    // Use Turkish locale formatting and replace dot with comma
-    return price.toLocaleString('tr-TR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
-  const parsePriceInput = (input: string): string => {
-    // Remove any non-numeric characters except decimal point and comma
-    const cleaned = input.replace(/[^\d,]/g, '');
-    // Handle decimal places
-    const parts = cleaned.split(',');
-    if (parts.length > 1) {
-      return `${parts[0]},${parts[1].slice(0, 2)}`;
-    }
-    return cleaned;
-  };
+  // Update notification settings when global setting changes
+  useEffect(() => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      enabled: prev.enabled && notificationsEnabled
+    }));
+  }, [notificationsEnabled]);
 
   // Populate initial values if editing
   useEffect(() => {
     if (initialExpense && visible) {
       // Format the amount correctly preserving all digits
-      setAmount(formatPriceForDisplay(initialExpense.amount));
+      setAmount(initialExpense.amount.toFixed(2).replace('.', ','));
       setCurrency(initialExpense.currency);
       setName(initialExpense.name);
 
@@ -151,8 +142,17 @@ export function AddExpenseModal({
 
       // Skip service selection when editing
       setShowServiceSelection(false);
+
+      // Initialize notification settings from existing expense
+      if (initialExpense.notification) {
+        setNotificationSettings({
+          enabled: initialExpense.notification.enabled && notificationsEnabled,
+          daysInAdvance: initialExpense.notification.daysInAdvance,
+          time: initialExpense.notification.time
+        });
+      }
     }
-  }, [initialExpense, visible]);
+  }, [initialExpense, visible, notificationsEnabled]);
 
   // Handle service selection
   const handleServiceSelect = (service: SubscriptionService | null) => {
@@ -301,6 +301,22 @@ export function AddExpenseModal({
     setTimePickerVisible(false);
   };
 
+  const handleNotificationToggle = async (value: boolean) => {
+    if (!notificationsEnabled) {
+      Alert.alert(
+        t('notificationsDisabled'),
+        t('enableNotificationsInSettings'),
+        [{ text: t('ok') }]
+      );
+      return;
+    }
+
+    setNotificationSettings(prev => ({
+      ...prev,
+      enabled: value
+    }));
+  };
+
   // Layout
   return (
     <>
@@ -327,7 +343,7 @@ export function AddExpenseModal({
               {/* Header */}
               <View style={styles.headerRow}>
                 <ThemedText style={styles.title}>
-                  {initialExpense ? 'Edit Expense' : 'Add New Expense'}
+                  {initialExpense ? t('editExpense') : t('addNewExpense')}
                 </ThemedText>
               </View>
 
@@ -344,8 +360,8 @@ export function AddExpenseModal({
                         <FontAwesome name="money" size={16} color="#007AFF" />
                       </View>
                       <View>
-                        <ThemedText style={styles.sectionTitle}>Amount</ThemedText>
-                        <ThemedText style={styles.sectionSubtitle}>Enter expense amount and currency</ThemedText>
+                        <ThemedText style={styles.sectionTitle}>{t('amount')}</ThemedText>
+                        <ThemedText style={styles.sectionSubtitle}>{t('enterAmount')}</ThemedText>
                       </View>
                     </View>
                   </View>
@@ -369,9 +385,9 @@ export function AddExpenseModal({
                         <FontAwesome name="tag" size={16} color="#007AFF" />
                       </View>
                       <View>
-                        <ThemedText style={styles.sectionTitle}>Name</ThemedText>
+                        <ThemedText style={styles.sectionTitle}>{t('name')}</ThemedText>
                         <ThemedText style={styles.sectionSubtitle}>
-                          {selectedService ? 'Name and customize your subscription' : 'Give your expense a name'}
+                          {selectedService ? t('customizeSubscription') : t('enterName')}
                         </ThemedText>
                       </View>
                     </View>
@@ -383,19 +399,16 @@ export function AddExpenseModal({
                           label=""
                           value={name}
                           onChangeText={setName}
-                          placeholder="Enter expense name"
+                          placeholder={t('enterName')}
                           style={[styles.input, { marginBottom: 0 }]}
                         />
                       </View>
                       {selectedService && (
                         <View>
                           <View style={styles.customNameLabelContainer}>
-                            <ThemedText style={styles.inputLabel}>Custom Name</ThemedText>
-                            <ThemedText style={styles.optionalText}>(optional)</ThemedText>
+                            <ThemedText style={styles.inputLabel}>{t('customName')}</ThemedText>
+                            <ThemedText style={styles.optionalText}>{t('optional')}</ThemedText>
                           </View>
-                          <ThemedText style={styles.customNameHint}>
-                            Add a custom name to personalize this subscription
-                          </ThemedText>
                           <ThemedInput
                             label=""
                             value={customServiceName}
@@ -419,8 +432,8 @@ export function AddExpenseModal({
                         <FontAwesome name="repeat" size={16} color="#007AFF" />
                       </View>
                       <View>
-                        <ThemedText style={styles.sectionTitle}>Recurrence</ThemedText>
-                        <ThemedText style={styles.sectionSubtitle}>How often this expense repeats</ThemedText>
+                        <ThemedText style={styles.sectionTitle}>{t('recurrence')}</ThemedText>
+                        <ThemedText style={styles.sectionSubtitle}>{t('recurrenceDescription')}</ThemedText>
                       </View>
                     </View>
                   </View>
@@ -431,10 +444,8 @@ export function AddExpenseModal({
                     >
                       <ThemedText style={styles.recurrenceText}>
                         {recurrenceType === 'custom'
-                          ? `Custom: every ${customInterval} ${
-                              intervalUnit === 'day' ? 'days' : 'months'
-                            }`
-                          : recurrenceType.charAt(0).toUpperCase() + recurrenceType.slice(1)}
+                          ? `${t('custom')} (${customInterval} ${t(intervalUnit === 'day' ? 'days' : 'months')})`
+                          : t(recurrenceType)}
                       </ThemedText>
                       <FontAwesome name="chevron-down" size={12} color={colors.text} />
                     </TouchableOpacity>
@@ -451,8 +462,8 @@ export function AddExpenseModal({
                         <FontAwesome name="calendar" size={16} color="#007AFF" />
                       </View>
                       <View>
-                        <ThemedText style={styles.sectionTitle}>Dates</ThemedText>
-                        <ThemedText style={styles.sectionSubtitle}>Set start and end dates</ThemedText>
+                        <ThemedText style={styles.sectionTitle}>{t('dates')}</ThemedText>
+                        <ThemedText style={styles.sectionSubtitle}>{t('setDates')}</ThemedText>
                       </View>
                     </View>
                   </View>
@@ -460,7 +471,7 @@ export function AddExpenseModal({
                     <View style={styles.dateRow}>
                       {/* START DATE */}
                       <View style={styles.dateCol}>
-                        <ThemedText style={styles.label}>Start Date</ThemedText>
+                        <ThemedText style={styles.label}>{t('startDate')}</ThemedText>
                         <TouchableOpacity
                           style={[styles.dateButton, { borderColor: colors.border }]}
                           onPress={() => setStartPickerVisible(true)}
@@ -472,7 +483,7 @@ export function AddExpenseModal({
                       {/* END DATE (optional for recurring) */}
                       {recurrenceType !== 'once' && (
                         <View style={styles.dateCol}>
-                          <ThemedText style={styles.label}>End Date</ThemedText>
+                          <ThemedText style={styles.label}>{t('endDate')}</ThemedText>
                           {endDate ? (
                             <>
                               <TouchableOpacity
@@ -486,7 +497,7 @@ export function AddExpenseModal({
                                 textStyle={styles.buttonText}
                                 onPress={() => setEndDate(null)}
                               >
-                                Clear
+                                {t('clear')}
                               </ThemedButton>
                             </>
                           ) : (
@@ -498,7 +509,7 @@ export function AddExpenseModal({
                                 if (!endDate) setEndDate(new Date());
                               }}
                             >
-                              Set End Date
+                              {t('setEndDate')}
                             </ThemedButton>
                           )}
                         </View>
@@ -509,92 +520,92 @@ export function AddExpenseModal({
 
                 <View style={styles.divider} />
 
-                {/* Notifications */}
+                {/* NOTIFICATION SETTINGS */}
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <View style={styles.sectionLabelContainer}>
                       <View style={[styles.iconContainer, { backgroundColor: '#007AFF20' }]}>
-                        <FontAwesome 
-                          name={notificationSettings.enabled ? "bell" : "bell-slash"} 
-                          size={16} 
-                          color="#007AFF" 
-                        />
+                        <FontAwesome name="bell" size={16} color="#007AFF" />
                       </View>
                       <View>
-                        <ThemedText style={styles.sectionTitle}>Notifications</ThemedText>
-                        <ThemedText style={styles.sectionSubtitle}>
-                          {notificationSettings.enabled ? 'Enabled' : 'Disabled'}
-                        </ThemedText>
+                        <ThemedText style={styles.sectionTitle}>{t('notifications')}</ThemedText>
                       </View>
                     </View>
                   </View>
                   <View style={styles.sectionContent}>
-                    <View style={[styles.notificationRow, { marginBottom: 0 }]}>
-                      <View style={styles.notificationLabelContainer}>
-                        <FontAwesome name="calendar" size={18} color={colors.text} />
-                        <ThemedText style={styles.notificationLabel}>Days before</ThemedText>
+                    <View style={styles.notificationRow}>
+                      <ThemedText style={styles.notificationLabel}>{t('enabled')}</ThemedText>
+                      <Switch
+                        value={notificationSettings.enabled}
+                        onValueChange={handleNotificationToggle}
+                      />
+                    </View>
+                  </View>
+
+                  {notificationSettings.enabled && (
+                    <View style={styles.sectionContent}>
+                      <View style={[styles.notificationRow, { marginBottom: 12 }]}>
+                        <View style={styles.notificationLabelContainer}>
+                          <FontAwesome name="calendar" size={18} color={colors.text} />
+                          <ThemedText style={styles.notificationLabel}>{t('daysBefore')}</ThemedText>
+                        </View>
+                        <View style={[styles.daysInputContainer, { backgroundColor: colors.card.background }]}>
+                          <TouchableOpacity 
+                            style={[styles.dayStepperButton, { 
+                              borderColor: colors.border,
+                              backgroundColor: colors.card.background
+                            }]}
+                            onPress={() => {
+                              setNotificationSettings(prev => ({
+                                ...prev,
+                                daysInAdvance: Math.max(0, prev.daysInAdvance - 1)
+                              }));
+                            }}
+                          >
+                            <ThemedText style={styles.stepperText}>-</ThemedText>
+                          </TouchableOpacity>
+                          
+                          <ThemedText style={styles.daysValue}>
+                            {notificationSettings.daysInAdvance}
+                          </ThemedText>
+
+                          <TouchableOpacity 
+                            style={[styles.dayStepperButton, { 
+                              borderColor: colors.border,
+                              backgroundColor: colors.card.background
+                            }]}
+                            onPress={() => {
+                              setNotificationSettings(prev => ({
+                                ...prev,
+                                daysInAdvance: Math.min(30, prev.daysInAdvance + 1)
+                              }));
+                            }}
+                          >
+                            <ThemedText style={styles.stepperText}>+</ThemedText>
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                      <View style={[styles.daysInputContainer, { backgroundColor: colors.card.background }]}>
-                        <TouchableOpacity 
-                          style={[styles.dayStepperButton, { 
+
+                      <View style={[styles.notificationRow, { marginBottom: 0 }]}>
+                        <View style={styles.notificationLabelContainer}>
+                          <FontAwesome name="clock-o" size={18} color={colors.text} />
+                          <ThemedText style={styles.notificationLabel}>{t('notificationTime')}</ThemedText>
+                        </View>
+                        <TouchableOpacity
+                          style={[styles.timeButton, { 
+                            backgroundColor: colors.card.background,
                             borderColor: colors.border,
-                            backgroundColor: colors.card.background
+                            borderWidth: 1
                           }]}
-                          onPress={() => {
-                            setNotificationSettings(prev => ({
-                              ...prev,
-                              daysInAdvance: Math.max(0, prev.daysInAdvance - 1)
-                            }));
-                          }}
+                          onPress={() => setTimePickerVisible(true)}
                         >
-                          <ThemedText style={styles.stepperText}>-</ThemedText>
-                        </TouchableOpacity>
-                        
-                        <ThemedText style={styles.daysValue}>
-                          {notificationSettings.daysInAdvance}
-                        </ThemedText>
-                        
-                        <TouchableOpacity 
-                          style={[styles.dayStepperButton, { 
-                            borderColor: colors.border,
-                            backgroundColor: colors.card.background
-                          }]}
-                          onPress={() => {
-                            setNotificationSettings(prev => ({
-                              ...prev,
-                              daysInAdvance: Math.min(30, prev.daysInAdvance + 1)
-                            }));
-                          }}
-                        >
-                          <ThemedText style={styles.stepperText}>+</ThemedText>
+                          <ThemedText style={styles.timeText}>
+                            {`${notificationSettings.time.hour.toString().padStart(2, '0')}:${notificationSettings.time.minute.toString().padStart(2, '0')}`}
+                          </ThemedText>
                         </TouchableOpacity>
                       </View>
                     </View>
-
-                    {notificationSettings.enabled && (
-                      <>
-                        {/* Time picker */}
-                        <View style={[styles.notificationRow, { marginBottom: 0 }]}>
-                          <View style={styles.notificationLabelContainer}>
-                            <FontAwesome name="clock-o" size={18} color={colors.text} />
-                            <ThemedText style={styles.notificationLabel}>Notification time</ThemedText>
-                          </View>
-                          <TouchableOpacity
-                            style={[styles.timeButton, { 
-                              backgroundColor: colors.card.background,
-                              borderColor: colors.border,
-                              borderWidth: 1
-                            }]}
-                            onPress={() => setTimePickerVisible(true)}
-                          >
-                            <ThemedText style={styles.timeText}>
-                              {`${notificationSettings.time.hour.toString().padStart(2, '0')}:${notificationSettings.time.minute.toString().padStart(2, '0')}`}
-                            </ThemedText>
-                          </TouchableOpacity>
-                        </View>
-                      </>
-                    )}
-                  </View>
+                  )}
                 </View>
 
                 <View style={styles.divider} />
@@ -607,8 +618,8 @@ export function AddExpenseModal({
                         <FontAwesome name="paint-brush" size={16} color="#007AFF" />
                       </View>
                       <View>
-                        <ThemedText style={styles.sectionTitle}>Color</ThemedText>
-                        <ThemedText style={styles.sectionSubtitle}>Choose a color for this expense</ThemedText>
+                        <ThemedText style={styles.sectionTitle}>{t('color')}</ThemedText>
+                        <ThemedText style={styles.sectionSubtitle}>{t('chooseColor')}</ThemedText>
                       </View>
                     </View>
                   </View>
@@ -640,14 +651,14 @@ export function AddExpenseModal({
                   textStyle={styles.buttonText}
                   onPress={handleCancel}
                 >
-                  Cancel
+                  {t('cancel')}
                 </ThemedButton>
                 <ThemedButton 
                   style={[styles.footerBtn, styles.saveBtn]}
                   textStyle={styles.buttonText}
                   onPress={handleSave}
                 >
-                  Save
+                  {t('save')}
                 </ThemedButton>
               </View>
             </ThemedView>
@@ -679,7 +690,7 @@ export function AddExpenseModal({
             >
               <SafeAreaView style={styles.sheetBackdrop}>
                 <View style={[styles.sheetContainer, { backgroundColor: colors.card.background }]}>
-                  <ThemedText style={styles.sheetTitle}>Choose Recurrence</ThemedText>
+                  <ThemedText style={styles.sheetTitle}>{t('recurrence')}</ThemedText>
                   {(['once', 'daily', 'weekly', 'monthly', 'yearly', 'custom'] as RecurrenceType[]).map(
                     (item) => (
                       <TouchableOpacity
@@ -688,26 +699,17 @@ export function AddExpenseModal({
                         onPress={() => handleRecurrenceSelect(item)}
                       >
                         <ThemedText style={styles.recurrenceItemText}>
-                          {item.charAt(0).toUpperCase() + item.slice(1)}
+                          {t(item)}
                         </ThemedText>
                       </TouchableOpacity>
                     )
                   )}
                   <TouchableOpacity style={styles.sheetCancel} onPress={closeRecurrenceSheet}>
-                    <ThemedText style={{ color: '#FF3B30' }}>Cancel</ThemedText>
+                    <ThemedText style={{ color: '#FF3B30' }}>{t('cancel')}</ThemedText>
                   </TouchableOpacity>
                 </View>
               </SafeAreaView>
             </Modal>
-
-            {/* CUSTOM INTERVAL MODAL */}
-            <CustomIntervalModal
-              visible={showCustomIntervalModal}
-              initialInterval={customInterval}
-              initialUnit={intervalUnit}
-              onCancel={handleCancelCustomInterval}
-              onSave={handleSaveCustomInterval}
-            />
 
             {/* ERROR MESSAGE MODAL */}
             <Modal
@@ -722,14 +724,14 @@ export function AddExpenseModal({
                 onPress={() => setErrorMessage(null)}
               >
                 <ThemedView style={[styles.errorCard, { backgroundColor: colors.card.background }]}>
-                  <ThemedText style={styles.errorTitle}>Required Field</ThemedText>
+                  <ThemedText style={styles.errorTitle}>{t('error')}</ThemedText>
                   <ThemedText style={styles.errorMessage}>{errorMessage}</ThemedText>
                   <ThemedButton 
                     style={styles.errorButton}
                     textStyle={styles.buttonText}
                     onPress={() => setErrorMessage(null)}
                   >
-                    OK
+                    {t('ok')}
                   </ThemedButton>
                 </ThemedView>
               </TouchableOpacity>
@@ -1052,5 +1054,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.5,
     marginBottom: 4,
+  },
+
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
 });

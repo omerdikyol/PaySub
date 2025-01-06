@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Modal, TouchableOpacity, View } from 'react-native';
 import { ThemedText, ThemedView, ThemedButton } from '../Themed';
 import { useTheme } from '../useTheme';
+import { useLanguage } from '@/context/LanguageContext';
 
 type DeleteConfirmationModalProps = {
   visible: boolean;
@@ -15,10 +16,11 @@ export const DeleteConfirmationModal = ({
   visible, 
   onClose, 
   onConfirm,
-  title = "Delete Item",
-  message = "Are you sure you want to delete this item?"
+  title = "deleteItem",
+  message = "deleteConfirmation"
 }: DeleteConfirmationModalProps) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   return (
     <Modal
@@ -26,6 +28,7 @@ export const DeleteConfirmationModal = ({
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      accessibilityLabel={t('deleteConfirmation')}
     >
       <TouchableOpacity
         style={styles.modalOverlay}
@@ -33,20 +36,20 @@ export const DeleteConfirmationModal = ({
         onPress={onClose}
       >
         <ThemedView style={[styles.confirmModal, { backgroundColor: colors.card.background }]}>
-          <ThemedText style={styles.confirmTitle}>{title}</ThemedText>
-          <ThemedText style={styles.confirmMessage}>{message}</ThemedText>
+          <ThemedText style={styles.confirmTitle}>{t(title)}</ThemedText>
+          <ThemedText style={styles.confirmMessage}>{t(message)}</ThemedText>
           <View style={styles.confirmButtons}>
             <ThemedButton
               style={[styles.confirmButton, styles.cancelButton]}
               onPress={onClose}
             >
-              Cancel
+              {t('cancel')}
             </ThemedButton>
             <ThemedButton
               style={[styles.confirmButton, styles.deleteButton]}
               onPress={onConfirm}
             >
-              Delete
+              {t('delete')}
             </ThemedButton>
           </View>
         </ThemedView>

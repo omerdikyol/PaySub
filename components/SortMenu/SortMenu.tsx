@@ -8,6 +8,7 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { ThemedText, ThemedView } from '../Themed';
 import { useTheme } from '../useTheme';
+import { useLanguage } from '@/context/LanguageContext';
 
 type SortCriteria = 'date' | 'price' | 'name';
 type SortOrder = 'asc' | 'desc';
@@ -28,6 +29,7 @@ export const SortMenu = ({
   onSortChange 
 }: SortMenuProps) => {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const handleSortOptionPress = (criteria: SortCriteria) => {
     const newOrder = criteria === sortCriteria && sortOrder === 'asc' ? 'desc' : 'asc';
@@ -41,6 +43,7 @@ export const SortMenu = ({
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      accessibilityLabel={t('sortBy')}
     >
       <TouchableOpacity
         style={styles.modalOverlay}
@@ -51,9 +54,10 @@ export const SortMenu = ({
           <TouchableOpacity
             style={styles.menuOption}
             onPress={() => handleSortOptionPress('date')}
+            accessibilityLabel={t('sortBy') + ' ' + t('date')}
           >
             <View style={styles.menuOptionContent}>
-              <ThemedText>Date</ThemedText>
+              <ThemedText>{t('date')}</ThemedText>
               {sortCriteria === 'date' && (
                 <FontAwesome
                   name={sortOrder === 'asc' ? 'sort-up' : 'sort-down'}
@@ -66,9 +70,10 @@ export const SortMenu = ({
           <TouchableOpacity
             style={styles.menuOption}
             onPress={() => handleSortOptionPress('price')}
+            accessibilityLabel={t('sortBy') + ' ' + t('amount')}
           >
             <View style={styles.menuOptionContent}>
-              <ThemedText>Amount</ThemedText>
+              <ThemedText>{t('amount')}</ThemedText>
               {sortCriteria === 'price' && (
                 <FontAwesome
                   name={sortOrder === 'asc' ? 'sort-up' : 'sort-down'}
@@ -81,9 +86,10 @@ export const SortMenu = ({
           <TouchableOpacity
             style={styles.menuOption}
             onPress={() => handleSortOptionPress('name')}
+            accessibilityLabel={t('sortBy') + ' ' + t('name')}
           >
             <View style={styles.menuOptionContent}>
-              <ThemedText>Name</ThemedText>
+              <ThemedText>{t('name')}</ThemedText>
               {sortCriteria === 'name' && (
                 <FontAwesome
                   name={sortOrder === 'asc' ? 'sort-up' : 'sort-down'}

@@ -119,4 +119,12 @@ export class NotificationService {
   static async cancelAllNotifications() {
     await Notifications.cancelAllScheduledNotificationsAsync();
   }
+
+  // Function to set notifications enabled state
+  static async setNotificationsEnabled(enabled: boolean) {
+    if (!enabled) {
+      // If notifications are being disabled, cancel all scheduled notifications
+      await this.cancelAllNotifications();
+    }
+  }
 } 
