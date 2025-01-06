@@ -14,7 +14,7 @@ export type SubscriptionService = {
 
 export const PREDEFINED_SERVICES: ServiceCategory[] = [
     {
-        id: 'streaming-video',
+        id: 'streaming_video',
         name: 'Streaming Video',
         services: [
             {
@@ -55,7 +55,7 @@ export const PREDEFINED_SERVICES: ServiceCategory[] = [
         ]
     },
     {
-        id: 'streaming-music',
+        id: 'streaming_music',
         name: 'Streaming Music',
         services: [
             {
@@ -75,7 +75,7 @@ export const PREDEFINED_SERVICES: ServiceCategory[] = [
         ]
     },
     {
-        id: 'social-streaming',
+        id: 'social_streaming',
         name: 'Social & Streaming',
         services: [
             {
@@ -150,7 +150,7 @@ export const PREDEFINED_SERVICES: ServiceCategory[] = [
         ]
     },
     {
-        id: 'ai-cloud',
+        id: 'ai_cloud',
         name: 'AI & Cloud',
         services: [
             {

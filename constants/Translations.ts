@@ -14,7 +14,7 @@ export const translations = {
     
     // Tabs
     dashboard: 'Dashboard',
-    expenses: 'Expenses',
+    expense: 'Expense',
     income: 'Income',
     settings: 'Settings',
 
@@ -237,6 +237,12 @@ export const translations = {
     addCustomExpense: 'Add Custom Expense',
     close: 'Close',
     category_streaming: 'Streaming Services',
+    category_streaming_video: 'Streaming Video',
+    category_streaming_music: 'Streaming Music',
+    category_streaming_games: 'Streaming Games',
+    category_social_streaming: 'Social Streaming',
+    category_ai_cloud: 'AI Cloud',
+    category_professional: 'Professional Services',
     category_utilities: 'Utilities',
     category_software: 'Software & Apps',
     category_gaming: 'Gaming',
@@ -263,7 +269,7 @@ export const translations = {
     
     // Tabs
     dashboard: 'Panel',
-    expenses: 'Giderler',
+    expense: 'Gider',
     income: 'Gelir',
     settings: 'Ayarlar',
 
@@ -481,11 +487,17 @@ export const translations = {
     menuOptions: 'Menü Seçenekleri',
 
     // Service Selection Modal
-    selectService: '{service} Seç',
+    selectService: 'Servis Seç',
     selectSubscriptionService: 'Abonelik Hizmeti Seç',
     addCustomExpense: 'Özel Gider Ekle',
     close: 'Kapat',
     category_streaming: 'Yayın Hizmetleri',
+    category_streaming_video: 'Dizi & Film',
+    category_streaming_music: 'Müzik Servisleri',
+    category_streaming_games: 'Oyun Servisleri',
+    category_social_streaming: 'Sosyal Uygulamalar',
+    category_ai_cloud: 'AI Bulut',
+    category_professional: 'Profesyonel Hizmetler',
     category_utilities: 'Faturalar',
     category_software: 'Yazılım ve Uygulamalar',
     category_gaming: 'Oyun',
