@@ -109,13 +109,13 @@ export default function TabOneScreen() {
             <TouchableOpacity 
               style={styles.cardWrapper}
               activeOpacity={0.7}
-              onPress={() => router.push('/(tabs)/expenses')}
+              onPress={() => router.push('/(tabs)/expense')}
             >
               <ThemedCard style={[styles.card, styles.halfCard]}>
                 <View style={[styles.iconCircle, { backgroundColor: colors.error + '20' }]}>
                   <Icon name="arrow-up" size={24} color={colors.error} />
                 </View>
-                <ThemedText style={styles.cardLabel}>{t('expenses')}</ThemedText>
+                <ThemedText style={styles.cardLabel}>{t('expense')}</ThemedText>
                 <ThemedText style={[styles.amount, styles.smallerAmount]}>
                   {monthlyData.formatInPreferredCurrency(monthlyData.expenses)}
                 </ThemedText>
@@ -125,7 +125,7 @@ export default function TabOneScreen() {
 
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => router.push('/(tabs)/expenses')}
+            onPress={() => router.push('/(tabs)/expense')}
           >
             <ThemedCard style={[styles.card, styles.debtCard]}>
               <View style={styles.debtHeader}>
