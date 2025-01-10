@@ -15,6 +15,9 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Language } from '@/constants/Translations';
+import { useAuth } from '@/context/AuthContext';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 interface SettingSectionProps {
     title: string;
@@ -82,6 +85,7 @@ export default function Settings() {
     const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
     const [showLanguagePicker, setShowLanguagePicker] = useState(false);
     const { preferredCurrency, setPreferredCurrency } = useCurrency();
+    const { user, logout } = useAuth();
 
     useEffect(() => {
         loadPreferredCurrency();
@@ -259,9 +263,58 @@ export default function Settings() {
         setShowLanguagePicker(false);
     };
 
+    const handleLogout = async () => {
+        await logout();
+        router.replace('/login');
+    };
+
+    const renderUserSection = () => {
+        if (user) {
+            return (
+                <ThemedView style={[styles.section, { backgroundColor: colors.card.background }]}>
+                    <ThemedView style={styles.userInfo}>
+                        <ThemedText style={styles.userName}>{user.name}</ThemedText>
+                        <ThemedText style={styles.userEmail}>{user.email}</ThemedText>
+                    </ThemedView>
+                    <TouchableOpacity
+                        style={[styles.logoutButton, { backgroundColor: colors.error }]}
+                        onPress={handleLogout}
+                    >
+                        <ThemedText style={styles.logoutButtonText}>{t('logout')}</ThemedText>
+                    </TouchableOpacity>
+                </ThemedView>
+            );
+        }
+
+        return (
+            <ThemedView style={[styles.authSection, { backgroundColor: colors.card.background }]}>
+                <ThemedText style={styles.authTitle}>{t('welcomeBack')}</ThemedText>
+                <ThemedText style={styles.authDescription}>{t('signInToContinue')}</ThemedText>
+                <View style={styles.authButtonsContainer}>
+                    <TouchableOpacity
+                        style={[styles.authButton, { backgroundColor: '#007AFF' }]}
+                        onPress={() => router.push('/login')}
+                    >
+                        <Ionicons name="log-in-outline" size={24} color="#FFFFFF" style={styles.authButtonIcon} />
+                        <ThemedText style={styles.authButtonText}>{t('login')}</ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.authButton, { backgroundColor: colors.card.subtle }]}
+                        onPress={() => router.push('/register')}
+                    >
+                        <Ionicons name="person-add-outline" size={24} color={colors.text} style={styles.authButtonIcon} />
+                        <ThemedText style={[styles.authButtonText, { color: colors.text }]}>{t('register')}</ThemedText>
+                    </TouchableOpacity>
+                </View>
+            </ThemedView>
+        );
+    };
+
     return (
         <ScreenLayout>
             <ScrollView style={styles.container}>
+                {renderUserSection()}
+
                 <ThemedText style={styles.header}>{t('settings')}</ThemedText>
 
                 <SettingSection title={t('appearance')}>
@@ -560,5 +613,62 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         marginTop: 12,
         paddingVertical: 8,
+    },
+    userInfo: {
+        marginBottom: 15,
+    },
+    userName: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 5,
+    },
+    userEmail: {
+        fontSize: 16,
+        opacity: 0.7,
+    },
+    logoutButton: {
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    logoutButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    authSection: {
+        marginBottom: 24,
+        borderRadius: 12,
+        padding: 20,
+    },
+    authTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    authDescription: {
+        fontSize: 16,
+        opacity: 0.7,
+        marginBottom: 20,
+    },
+    authButtonsContainer: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    authButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        borderRadius: 12,
+    },
+    authButtonIcon: {
+        marginRight: 8,
+    },
+    authButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#FFFFFF',
     },
 });

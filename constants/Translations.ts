@@ -2,6 +2,19 @@ export type Language = 'en' | 'tr';
 
 export const translations = {
   en: {
+    // Auth
+    login: 'Login',
+    register: 'Register',
+    email: 'Email',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
+    name_label: 'Name',
+    createAccount: 'Create Account',
+    noAccount: "Don't have an account?",
+    haveAccount: 'Already have an account?',
+    passwordsDoNotMatch: 'Passwords do not match',
+    logout: 'Logout',
+
     // Common
     save: 'Save',
     cancel: 'Cancel',
@@ -11,6 +24,7 @@ export const translations = {
     ok: 'OK',
     total: 'Total',
     every: 'every',
+    name: 'Name',
     
     // Tabs
     dashboard: 'Dashboard',
@@ -63,6 +77,7 @@ export const translations = {
     openSettings: 'Open Settings',
     error: 'Error',
     notificationUpdateError: 'Failed to update notification settings. Please try again.',
+    signInToContinue: 'Sign in to sync your data across devices',
 
     // Add Expense Modal
     addNewExpense: 'Add New Expense',
@@ -257,6 +272,19 @@ export const translations = {
     locale: 'en-US',
   },
   tr: {
+    // Auth
+    login: 'Giriş Yap',
+    register: 'Kayıt Ol',
+    email: 'E-posta',
+    password: 'Şifre',
+    confirmPassword: 'Şifre Tekrar',
+    name_label: 'Ad',
+    createAccount: 'Hesap Oluştur',
+    noAccount: 'Hesabınız yok mu?',
+    haveAccount: 'Zaten hesabınız var mı?',
+    passwordsDoNotMatch: 'Şifreler eşleşmiyor',
+    logout: 'Çıkış Yap',
+
     // Common
     save: 'Kaydet',
     cancel: 'İptal',
@@ -266,6 +294,7 @@ export const translations = {
     ok: 'Tamam',
     total: 'Toplam',
     every: 'her',
+    name: 'İsim',
     
     // Tabs
     dashboard: 'Panel',
@@ -318,6 +347,7 @@ export const translations = {
     openSettings: 'Ayarları Aç',
     error: 'Hata',
     notificationUpdateError: 'Bildirim ayarları güncellenirken hata oluştu. Lütfen tekrar deneyin.',
+    signInToContinue: 'Verilerinizi cihazlar arasında eşitlemek için lütfen giriş yapınız',
 
     // Add Expense Modal
     addNewExpense: 'Yeni Gider Ekle',
