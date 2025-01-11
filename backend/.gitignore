@@ -37,3 +37,6 @@ temp/
 # MongoDB
 *.mongodb
 mongod.lock 
+
+# Firebase
+serviceAccountKey.json

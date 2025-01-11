@@ -4,8 +4,6 @@ dotenv.config();
 
 export const {
   PORT = 3000,
-  MONGODB_URI = 'mongodb://localhost:27017/paysub',
-  JWT_SECRET = 'your-secret-key',
   NODE_ENV = 'development',
 } = process.env;
 

@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
-import User from '../models/User';
-import { JWT_SECRET } from '../config';
+import { auth, collections } from '../config/firebase';
 import { AuthRequest } from '../middleware/auth';
 
 export const register = async (req: Request, res: Response) => {
@@ -15,36 +13,46 @@ export const register = async (req: Request, res: Response) => {
     const { email, password, name, defaultCurrency, language } = req.body;
 
     // Check if user already exists
-    let user = await User.findOne({ email });
-    if (user) {
+    const userRecord = await auth.getUserByEmail(email).catch(() => null);
+    if (userRecord) {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    // Create new user
-    user = new User({
+    // Create user in Firebase Auth
+    const createdUser = await auth.createUser({
       email,
       password,
+      displayName: name,
+    });
+
+    // Create user document in Firestore
+    const userData = {
+      email,
       name,
       defaultCurrency: defaultCurrency || 'TRY',
       language: language || 'en',
-    });
+      notificationPreferences: {
+        defaultEnabled: true,
+        defaultDaysInAdvance: 1,
+        defaultTime: {
+          hour: 12,
+          minute: 0,
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-    await user.save();
+    await collections.users.doc(createdUser.uid).set(userData);
 
-    // Generate JWT
-    const token = jwt.sign({ id: user.id }, JWT_SECRET, {
-      expiresIn: '7d',
-    });
+    // Create custom token
+    const token = await auth.createCustomToken(createdUser.uid);
 
     res.status(201).json({
       token,
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        defaultCurrency: user.defaultCurrency,
-        language: user.language,
-        notificationPreferences: user.notificationPreferences,
+        id: createdUser.uid,
+        ...userData,
       },
     });
   } catch (error) {
@@ -62,32 +70,26 @@ export const login = async (req: Request, res: Response) => {
 
     const { email, password } = req.body;
 
-    // Check if user exists
-    const user = await User.findOne({ email });
-    if (!user) {
+    // Get user from Firebase Auth
+    const userRecord = await auth.getUserByEmail(email).catch(() => null);
+    if (!userRecord) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Validate password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+    // Get user data from Firestore
+    const userDoc = await collections.users.doc(userRecord.uid).get();
+    if (!userDoc.exists) {
+      return res.status(400).json({ error: 'User data not found' });
     }
 
-    // Generate JWT
-    const token = jwt.sign({ id: user.id }, JWT_SECRET, {
-      expiresIn: '7d',
-    });
+    // Create custom token
+    const token = await auth.createCustomToken(userRecord.uid);
 
     res.json({
       token,
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        defaultCurrency: user.defaultCurrency,
-        language: user.language,
-        notificationPreferences: user.notificationPreferences,
+        id: userRecord.uid,
+        ...userDoc.data(),
       },
     });
   } catch (error) {
@@ -98,11 +100,19 @@ export const login = async (req: Request, res: Response) => {
 
 export const getProfile = async (req: AuthRequest, res: Response) => {
   try {
-    const user = await User.findById(req.user?.id).select('-password');
-    if (!user) {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const userDoc = await collections.users.doc(req.user.id).get();
+    if (!userDoc.exists) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.json(user);
+
+    res.json({
+      id: userDoc.id,
+      ...userDoc.data(),
+    });
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -111,29 +121,31 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
 
 export const updateProfile = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, defaultCurrency, language, notificationPreferences } = req.body;
-
-    const user = await User.findById(req.user?.id);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
-    if (name) user.name = name;
-    if (defaultCurrency) user.defaultCurrency = defaultCurrency;
-    if (language) user.language = language;
-    if (notificationPreferences) user.notificationPreferences = notificationPreferences;
+    const { name, defaultCurrency, language, notificationPreferences } = req.body;
 
-    await user.save();
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
 
+    if (name) {
+      updateData.name = name;
+      // Update display name in Firebase Auth
+      await auth.updateUser(req.user.id, { displayName: name });
+    }
+    if (defaultCurrency) updateData.defaultCurrency = defaultCurrency;
+    if (language) updateData.language = language;
+    if (notificationPreferences) updateData.notificationPreferences = notificationPreferences;
+
+    await collections.users.doc(req.user.id).update(updateData);
+
+    const userDoc = await collections.users.doc(req.user.id).get();
     res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        defaultCurrency: user.defaultCurrency,
-        language: user.language,
-        notificationPreferences: user.notificationPreferences,
-      },
+      id: userDoc.id,
+      ...userDoc.data(),
     });
   } catch (error) {
     console.error('Update profile error:', error);

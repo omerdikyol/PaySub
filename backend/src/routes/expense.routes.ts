@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { check } from 'express-validator';
-import { auth } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
 import {
   getExpenses,
   getExpense,
@@ -13,16 +13,16 @@ import {
 const router = Router();
 
 // Get all expenses
-router.get('/', auth, getExpenses);
+router.get('/', authMiddleware, getExpenses);
 
 // Get single expense
-router.get('/:id', auth, getExpense);
+router.get('/:id', authMiddleware, getExpense);
 
 // Create expense
 router.post(
   '/',
   [
-    auth,
+    authMiddleware,
     check('amount', 'Amount is required').isNumeric(),
     check('currency', 'Currency is required').not().isEmpty(),
     check('name', 'Name is required').not().isEmpty(),
@@ -44,7 +44,7 @@ router.post(
 router.put(
   '/:id',
   [
-    auth,
+    authMiddleware,
     check('amount', 'Amount must be numeric').optional().isNumeric(),
     check('currency', 'Currency is required').optional().not().isEmpty(),
     check('name', 'Name is required').optional().not().isEmpty(),
@@ -58,13 +58,13 @@ router.put(
 );
 
 // Delete expense
-router.delete('/:id', auth, deleteExpense);
+router.delete('/:id', authMiddleware, deleteExpense);
 
 // Update payment status
 router.patch(
   '/:id/payment',
   [
-    auth,
+    authMiddleware,
     check('date', 'Date is required').isISO8601(),
     check('isPaid', 'isPaid must be a boolean').isBoolean(),
   ],

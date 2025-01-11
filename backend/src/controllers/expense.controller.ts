@@ -1,21 +1,68 @@
 import { Response } from 'express';
 import { validationResult } from 'express-validator';
 import { AuthRequest } from '../middleware/auth';
-import Expense from '../models/Expense';
+import { collections } from '../config/firebase';
 
 export const getExpenses = async (req: AuthRequest, res: Response) => {
   try {
-    const { startDate, endDate } = req.query;
-    const query: any = { userId: req.user?.id };
-
-    if (startDate && endDate) {
-      query.startDate = {
-        $gte: new Date(startDate as string),
-        $lte: new Date(endDate as string),
-      };
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const expenses = await Expense.find(query).sort({ startDate: 1 });
+    const { startDate, endDate } = req.query;
+    
+    // First, get all expenses for this user to check the data structure
+    const baseQuery = collections.expenses.where('userId', '==', req.user.id);
+    const baseSnapshot = await baseQuery.get();
+    
+    console.log('All expenses for user:', baseSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })));
+
+    let query = collections.expenses.where('userId', '==', req.user.id);
+
+    if (startDate && endDate) {
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+      
+      console.log('Filtering by date range:', {
+        start: start.toISOString(),
+        end: end.toISOString()
+      });
+
+      // Add all where clauses before orderBy
+      query = query
+        .where('startDate', '>=', start)
+        .where('startDate', '<=', end)
+        .orderBy('startDate', 'asc');
+    } else {
+      // If no date range, just order by startDate
+      query = query.orderBy('startDate', 'asc');
+    }
+
+    console.log('Query params:', {
+      userId: req.user.id,
+      startDate: startDate ? new Date(startDate as string) : null,
+      endDate: endDate ? new Date(endDate as string) : null
+    });
+
+    const snapshot = await query.get();
+    const expenses = snapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log('Expense data:', {
+        id: doc.id,
+        startDate: data.startDate,
+        userId: data.userId,
+        ...data
+      });
+      return {
+        id: doc.id,
+        ...data
+      };
+    });
+
+    console.log('Found expenses:', expenses.length);
     res.json(expenses);
   } catch (error) {
     console.error('Get expenses error:', error);
@@ -25,16 +72,16 @@ export const getExpenses = async (req: AuthRequest, res: Response) => {
 
 export const getExpense = async (req: AuthRequest, res: Response) => {
   try {
-    const expense = await Expense.findOne({
-      _id: req.params.id,
-      userId: req.user?.id,
-    });
+    const doc = await collections.expenses.doc(req.params.id).get();
 
-    if (!expense) {
+    if (!doc.exists || doc.data()?.userId !== req.user?.id) {
       return res.status(404).json({ error: 'Expense not found' });
     }
 
-    res.json(expense);
+    res.json({
+      id: doc.id,
+      ...doc.data()
+    });
   } catch (error) {
     console.error('Get expense error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -48,14 +95,32 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const expense = new Expense({
-      ...req.body,
-      userId: req.user?.id,
-      paymentHistory: {},
-    });
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
-    await expense.save();
-    res.status(201).json(expense);
+    // Convert date strings to Date objects
+    const expenseData = {
+      ...req.body,
+      userId: req.user.id,
+      startDate: req.body.startDate ? new Date(req.body.startDate) : new Date(),
+      endDate: req.body.endDate ? new Date(req.body.endDate) : null,
+      paymentHistory: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    console.log('Creating expense:', expenseData);
+
+    const docRef = await collections.expenses.add(expenseData);
+    const doc = await docRef.get();
+    const createdExpense = {
+      id: doc.id,
+      ...doc.data()
+    };
+
+    console.log('Created expense:', createdExpense);
+    res.status(201).json(createdExpense);
   } catch (error) {
     console.error('Create expense error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -69,17 +134,23 @@ export const updateExpense = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const expense = await Expense.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user?.id },
-      { $set: req.body },
-      { new: true }
-    );
-
-    if (!expense) {
+    const doc = await collections.expenses.doc(req.params.id).get();
+    if (!doc.exists || doc.data()?.userId !== req.user?.id) {
       return res.status(404).json({ error: 'Expense not found' });
     }
 
-    res.json(expense);
+    const updateData = {
+      ...req.body,
+      updatedAt: new Date()
+    };
+
+    await collections.expenses.doc(req.params.id).update(updateData);
+    const updatedDoc = await collections.expenses.doc(req.params.id).get();
+
+    res.json({
+      id: updatedDoc.id,
+      ...updatedDoc.data()
+    });
   } catch (error) {
     console.error('Update expense error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -88,15 +159,12 @@ export const updateExpense = async (req: AuthRequest, res: Response) => {
 
 export const deleteExpense = async (req: AuthRequest, res: Response) => {
   try {
-    const expense = await Expense.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user?.id,
-    });
-
-    if (!expense) {
+    const doc = await collections.expenses.doc(req.params.id).get();
+    if (!doc.exists || doc.data()?.userId !== req.user?.id) {
       return res.status(404).json({ error: 'Expense not found' });
     }
 
+    await collections.expenses.doc(req.params.id).delete();
     res.json({ message: 'Expense deleted' });
   } catch (error) {
     console.error('Delete expense error:', error);
@@ -108,37 +176,34 @@ export const updatePaymentStatus = async (req: AuthRequest, res: Response) => {
   try {
     const { date, isPaid } = req.body;
     
-    // First get the current expense
-    const expense = await Expense.findOne({
-      _id: req.params.id,
-      userId: req.user?.id,
-    });
-
-    if (!expense) {
+    const doc = await collections.expenses.doc(req.params.id).get();
+    if (!doc.exists || doc.data()?.userId !== req.user?.id) {
       return res.status(404).json({ error: 'Expense not found' });
     }
 
-    // Create a new payment history object
+    const expenseData = doc.data();
+    if (!expenseData) {
+      return res.status(404).json({ error: 'Expense data not found' });
+    }
+
     const newPaymentHistory = {
-      ...expense.paymentHistory,
+      ...expenseData.paymentHistory,
       [date]: {
         isPaid,
         paidDate: isPaid ? new Date() : null
       }
     };
 
-    // Update the expense with the new payment history
-    const updatedExpense = await Expense.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user?.id },
-      { $set: { paymentHistory: newPaymentHistory } },
-      { new: true }
-    );
+    await collections.expenses.doc(req.params.id).update({
+      paymentHistory: newPaymentHistory,
+      updatedAt: new Date()
+    });
 
-    if (!updatedExpense) {
-      return res.status(404).json({ error: 'Expense not found' });
-    }
-
-    res.json(updatedExpense);
+    const updatedDoc = await collections.expenses.doc(req.params.id).get();
+    res.json({
+      id: updatedDoc.id,
+      ...updatedDoc.data()
+    });
   } catch (error) {
     console.error('Update payment status error:', error);
     res.status(500).json({ error: 'Server error' });

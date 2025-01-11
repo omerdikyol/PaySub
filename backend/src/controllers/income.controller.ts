@@ -1,21 +1,25 @@
 import { Response } from 'express';
 import { validationResult } from 'express-validator';
 import { AuthRequest } from '../middleware/auth';
-import Income from '../models/Income';
+import { collections } from '../config/firebase';
 
 export const getIncomes = async (req: AuthRequest, res: Response) => {
   try {
     const { startDate, endDate } = req.query;
-    const query: any = { userId: req.user?.id };
+    let query = collections.incomes.where('userId', '==', req.user?.id);
 
     if (startDate && endDate) {
-      query.startDate = {
-        $gte: new Date(startDate as string),
-        $lte: new Date(endDate as string),
-      };
+      query = query
+        .where('startDate', '>=', new Date(startDate as string))
+        .where('startDate', '<=', new Date(endDate as string));
     }
 
-    const incomes = await Income.find(query).sort({ startDate: 1 });
+    const snapshot = await query.orderBy('startDate', 'asc').get();
+    const incomes = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
     res.json(incomes);
   } catch (error) {
     console.error('Get incomes error:', error);
@@ -25,16 +29,16 @@ export const getIncomes = async (req: AuthRequest, res: Response) => {
 
 export const getIncome = async (req: AuthRequest, res: Response) => {
   try {
-    const income = await Income.findOne({
-      _id: req.params.id,
-      userId: req.user?.id,
-    });
+    const doc = await collections.incomes.doc(req.params.id).get();
 
-    if (!income) {
+    if (!doc.exists || doc.data()?.userId !== req.user?.id) {
       return res.status(404).json({ error: 'Income not found' });
     }
 
-    res.json(income);
+    res.json({
+      id: doc.id,
+      ...doc.data()
+    });
   } catch (error) {
     console.error('Get income error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -48,13 +52,20 @@ export const createIncome = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const income = new Income({
+    const incomeData = {
       ...req.body,
       userId: req.user?.id,
-    });
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-    await income.save();
-    res.status(201).json(income);
+    const docRef = await collections.incomes.add(incomeData);
+    const doc = await docRef.get();
+
+    res.status(201).json({
+      id: doc.id,
+      ...doc.data()
+    });
   } catch (error) {
     console.error('Create income error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -68,17 +79,23 @@ export const updateIncome = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const income = await Income.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user?.id },
-      { $set: req.body },
-      { new: true }
-    );
-
-    if (!income) {
+    const doc = await collections.incomes.doc(req.params.id).get();
+    if (!doc.exists || doc.data()?.userId !== req.user?.id) {
       return res.status(404).json({ error: 'Income not found' });
     }
 
-    res.json(income);
+    const updateData = {
+      ...req.body,
+      updatedAt: new Date()
+    };
+
+    await collections.incomes.doc(req.params.id).update(updateData);
+    const updatedDoc = await collections.incomes.doc(req.params.id).get();
+
+    res.json({
+      id: updatedDoc.id,
+      ...updatedDoc.data()
+    });
   } catch (error) {
     console.error('Update income error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -87,15 +104,12 @@ export const updateIncome = async (req: AuthRequest, res: Response) => {
 
 export const deleteIncome = async (req: AuthRequest, res: Response) => {
   try {
-    const income = await Income.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user?.id,
-    });
-
-    if (!income) {
+    const doc = await collections.incomes.doc(req.params.id).get();
+    if (!doc.exists || doc.data()?.userId !== req.user?.id) {
       return res.status(404).json({ error: 'Income not found' });
     }
 
+    await collections.incomes.doc(req.params.id).delete();
     res.json({ message: 'Income deleted' });
   } catch (error) {
     console.error('Delete income error:', error);

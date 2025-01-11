@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { check } from 'express-validator';
 import { register, login, getProfile, updateProfile } from '../controllers/auth.controller';
-import { auth } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
@@ -27,13 +27,13 @@ router.post(
 );
 
 // Get user profile
-router.get('/profile', auth, getProfile);
+router.get('/profile', authMiddleware, getProfile);
 
 // Update user profile
 router.put(
   '/profile',
   [
-    auth,
+    authMiddleware,
     check('name', 'Name is required').optional(),
     check('defaultCurrency', 'Default currency is required').optional(),
     check('language', 'Language must be either en or tr').optional().isIn(['en', 'tr']),

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { check } from 'express-validator';
-import { auth } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
 import {
   getIncomes,
   getIncome,
@@ -12,16 +12,16 @@ import {
 const router = Router();
 
 // Get all incomes
-router.get('/', auth, getIncomes);
+router.get('/', authMiddleware, getIncomes);
 
 // Get single income
-router.get('/:id', auth, getIncome);
+router.get('/:id', authMiddleware, getIncome);
 
 // Create income
 router.post(
   '/',
   [
-    auth,
+    authMiddleware,
     check('amount', 'Amount is required').isNumeric(),
     check('currency', 'Currency is required').not().isEmpty(),
     check('name', 'Name is required').not().isEmpty(),
@@ -43,7 +43,7 @@ router.post(
 router.put(
   '/:id',
   [
-    auth,
+    authMiddleware,
     check('amount', 'Amount must be numeric').optional().isNumeric(),
     check('currency', 'Currency is required').optional().not().isEmpty(),
     check('name', 'Name is required').optional().not().isEmpty(),
@@ -57,6 +57,6 @@ router.put(
 );
 
 // Delete income
-router.delete('/:id', auth, deleteIncome);
+router.delete('/:id', authMiddleware, deleteIncome);
 
 export default router; 

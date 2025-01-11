@@ -1,6 +1,4 @@
-import mongoose from 'mongoose';
-import { Service, ServiceCategory } from '../models/Service';
-import { MONGODB_URI } from '../config';
+import { collections } from '../config/firebase';
 
 const services = [
   // Streaming Video
@@ -216,40 +214,75 @@ const categories = [
 
 const seedDatabase = async () => {
   try {
-    await mongoose.connect(MONGODB_URI);
-    console.log('Connected to MongoDB');
+    console.log('Starting database seeding...');
+
+    // Test database connection
+    await collections.services.limit(1).get();
+    console.log('Database connection successful');
 
     // Clear existing data
-    await Service.deleteMany({});
-    await ServiceCategory.deleteMany({});
+    console.log('Clearing existing data...');
+    const servicesSnapshot = await collections.services.get();
+    const categoriesSnapshot = await collections.serviceCategories.get();
+
+    const deletePromises = [
+      ...servicesSnapshot.docs.map(doc => {
+        console.log(`Deleting service: ${doc.id}`);
+        return doc.ref.delete();
+      }),
+      ...categoriesSnapshot.docs.map(doc => {
+        console.log(`Deleting category: ${doc.id}`);
+        return doc.ref.delete();
+      })
+    ];
+    await Promise.all(deletePromises);
     console.log('Cleared existing data');
 
     // Insert categories
-    const createdCategories = await ServiceCategory.insertMany(categories);
+    console.log('Inserting categories...');
+    const categoryPromises = categories.map(category => {
+      console.log(`Creating category: ${category.name}`);
+      return collections.serviceCategories.doc(category.id).set(category);
+    });
+    await Promise.all(categoryPromises);
     console.log('Categories seeded');
 
     // Insert services
-    const createdServices = await Service.insertMany(services);
+    console.log('Inserting services...');
+    const servicePromises = services.map(service => {
+      console.log(`Creating service: ${service.name}`);
+      return collections.services.doc(service.id).set(service);
+    });
+    await Promise.all(servicePromises);
     console.log('Services seeded');
 
     // Update categories with service references
-    for (const category of createdCategories) {
-      const categoryServices = createdServices
+    console.log('Updating category references...');
+    const categoryUpdatePromises = categories.map(async category => {
+      const categoryServices = services
         .filter(service => service.category === category.id)
-        .map(service => service._id);
+        .map(service => service.id);
       
-      await ServiceCategory.findByIdAndUpdate(category._id, {
+      console.log(`Updating category ${category.name} with ${categoryServices.length} services`);
+      await collections.serviceCategories.doc(category.id).update({
         services: categoryServices
       });
-    }
+    });
+    await Promise.all(categoryUpdatePromises);
     console.log('Category references updated');
 
     console.log('Database seeded successfully');
     process.exit(0);
   } catch (error) {
     console.error('Error seeding database:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Stack trace:', error.stack);
+    }
     process.exit(1);
   }
 };
 
+// Run the seeding
+console.log('Initializing database seeding...');
 seedDatabase(); 
