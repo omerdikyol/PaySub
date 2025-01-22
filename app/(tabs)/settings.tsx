@@ -85,7 +85,7 @@ export default function Settings() {
     const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
     const [showLanguagePicker, setShowLanguagePicker] = useState(false);
     const { preferredCurrency, setPreferredCurrency } = useCurrency();
-    const { user, logout } = useAuth();
+    const { currentUser, logout } = useAuth();
 
     useEffect(() => {
         loadPreferredCurrency();
@@ -269,12 +269,12 @@ export default function Settings() {
     };
 
     const renderUserSection = () => {
-        if (user) {
+        if (currentUser) {
             return (
                 <ThemedView style={[styles.section, { backgroundColor: colors.card.background }]}>
                     <ThemedView style={styles.userInfo}>
-                        <ThemedText style={styles.userName}>{user.name}</ThemedText>
-                        <ThemedText style={styles.userEmail}>{user.email}</ThemedText>
+                        <ThemedText style={styles.userName}>{currentUser.displayName || currentUser.email}</ThemedText>
+                        <ThemedText style={styles.userEmail}>{currentUser.email}</ThemedText>
                     </ThemedView>
                     <TouchableOpacity
                         style={[styles.logoutButton, { backgroundColor: colors.error }]}
@@ -377,19 +377,20 @@ export default function Settings() {
                 </SettingSection>
 
                 <SettingSection title={t('dataManagement')}>
+                    <ThemedText style={[styles.testDescription, { marginHorizontal: 16, marginTop: 8 }]}>
+                        {t('dataExportMessage')}
+                    </ThemedText>
                     <SettingRow 
                         label={t('exportData')}
-                        icon={<FontAwesome name="download" size={20} color="#2196F3" />}
-                        onPress={handleExportData}
+                        icon={<FontAwesome name="download" size={20} color="#2196F3" style={{ opacity: 0.5 }} />}
                     >
-                        <FontAwesome name="chevron-right" size={12} color={colors.text} />
+                        <FontAwesome name="chevron-right" size={12} color={colors.text} style={{ opacity: 0.5 }} />
                     </SettingRow>
                     <SettingRow 
                         label={t('importData')}
-                        icon={<FontAwesome name="upload" size={20} color="#9C27B0" />}
-                        onPress={handleImportData}
+                        icon={<FontAwesome name="upload" size={20} color="#9C27B0" style={{ opacity: 0.5 }} />}
                     >
-                        <FontAwesome name="chevron-right" size={12} color={colors.text} />
+                        <FontAwesome name="chevron-right" size={12} color={colors.text} style={{ opacity: 0.5 }} />
                     </SettingRow>
                 </SettingSection>
 

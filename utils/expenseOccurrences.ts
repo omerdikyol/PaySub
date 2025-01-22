@@ -43,10 +43,16 @@ export function getExpenseOccurrencesInRange(expense: ExpenseItem, startDate: Da
   const addOccurrence = (date: Date) => {
     if (date >= startDate && date <= endDate && (!recurrenceEnd || date <= recurrenceEnd)) {
       const dateStr = date.toISOString();
+      const expenseDate = dateStr.split('T')[0];
+      const paymentHistoryEntry = Object.entries(expense.paymentHistory || {})
+        .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
+      const paymentStatus = paymentHistoryEntry?.[1] || { isPaid: false };
+
       occurrences.push({
         date: dateStr,
         amount: expense.amount,
-        paymentStatus: expense.paymentHistory[dateStr] || { isPaid: false }
+        paymentStatus,
+        originalExpense: expense
       });
     }
   };

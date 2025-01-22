@@ -29,11 +29,19 @@ export interface ExpenseItem extends BaseFinanceItem {
       interval?: number;
       intervalUnit?: string;
     };
+    color?: string;
+    paymentHistory?: {
+      [key: string]: {
+        isPaid: boolean;
+        paidDate?: string;
+      };
+    };
   };
   date: string;
   amount: number;
   paymentStatus?: {
     isPaid: boolean;
+    paidDate?: string;
   };
 }
 
@@ -107,15 +115,21 @@ export const ExpenseCard = ({
   };
 
   const renderLeftActions = (progress: Animated.AnimatedInterpolation, dragX: Animated.AnimatedInterpolation) => {
+    // Check payment status from the original expense's paymentHistory
+    const expenseDate = item.date.split('T')[0];
+    const paymentHistoryEntry = Object.entries(item.originalExpense.paymentHistory || {})
+      .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
+    const isPaid = paymentHistoryEntry?.[1]?.isPaid ?? false;
+
     return (
       <View 
         style={[
           styles.leftActionsContainer,
-          { backgroundColor: item.paymentStatus?.isPaid ? '#FF3B30' : '#34C759' }
+          { backgroundColor: isPaid ? '#FF3B30' : '#34C759' }
         ]}
       >
         <FontAwesome 
-          name={item.paymentStatus?.isPaid ? "times" : "check"} 
+          name={isPaid ? "times" : "check"} 
           size={24} 
           color="#fff" 
         />
@@ -125,6 +139,13 @@ export const ExpenseCard = ({
 
   const handlePaymentButtonClick = (e: GestureResponderEvent) => {
     e.stopPropagation();
+    // Check payment status from the original expense's paymentHistory
+    const expenseDate = item.date.split('T')[0];
+    const paymentHistoryEntry = Object.entries(item.originalExpense.paymentHistory || {})
+      .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
+    const isPaid = paymentHistoryEntry?.[1]?.isPaid ?? false;
+    
+    // Allow toggling in both directions (pay and refund)
     onPaymentToggle(item);
   };
 
@@ -136,19 +157,25 @@ export const ExpenseCard = ({
     paymentDate.setHours(0, 0, 0, 0);
     const isOverdue = !item.paymentStatus?.isPaid && paymentDate < today;
 
+    // Check payment status from the original expense's paymentHistory
+    const expenseDate = item.date.split('T')[0];
+    const paymentHistoryEntry = Object.entries(item.originalExpense.paymentHistory || {})
+      .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
+    const isPaid = paymentHistoryEntry?.[1]?.isPaid ?? false;
+
     return (
       <View style={[
         styles.rightColumn,
-        item.paymentStatus?.isPaid && styles.paidRightColumn
+        isPaid && styles.paidRightColumn
       ]}>
         <View style={styles.amountContainer}>
           <ThemedText style={[
             styles.amountText,
-            item.paymentStatus?.isPaid && styles.paidAmountText
+            isPaid && styles.paidAmountText
           ]}>
             {formatCurrency(item.amount, item.originalExpense.currency)}
           </ThemedText>
-          {isOverdue && (
+          {isOverdue && !isPaid && (
             <View style={styles.overdueBadge}>
               <FontAwesome name="exclamation" size={10} color="#fff" />
             </View>
@@ -156,9 +183,9 @@ export const ExpenseCard = ({
         </View>
 
         <View style={styles.actionsRow}>
-          {item.paymentStatus?.isPaid ? (
+          {isPaid ? (
             <TouchableOpacity
-              style={[styles.paidBadge, { opacity: 0.6 }]}
+              style={[styles.paidBadge]}
               onPress={handlePaymentButtonClick}
             >
               <FontAwesome name="check" size={12} color="#fff" />

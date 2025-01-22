@@ -1,40 +1,54 @@
-type RecurrenceType = 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
-type IntervalUnit = 'day' | 'month';
+import { SubscriptionService } from './service';
 
-type PaymentStatus = {
-    isPaid: boolean;
-    paidDate?: string; // ISO string date
-};
-
-type Occurrence = {
-    date: string; // ISO string date
-    amount: number;
-    paymentStatus: PaymentStatus;
-};
-
-type ExpenseItem = {
+export interface ExpenseItem {
+  id: string;
+  userId?: string;
+  amount: number;
+  currency: string;
+  name: string;
+  date: Date;
+  startDate: string;
+  color?: string;
+  recurrence: {
+    type: 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+    interval?: number;
+    intervalUnit?: 'day' | 'month';
+    endDate?: string;
+  };
+  service?: {
     id: string;
-    amount: number;
-    currency: string;
     name: string;
-    startDate: string;
-    color: string;
-    recurrence: {
-        type: RecurrenceType;
-        interval?: number;
-        endDate?: string;
-        intervalUnit?: IntervalUnit;
+    logo?: string;
+    customName?: string;
+  };
+  notification?: {
+    enabled: boolean;
+    daysInAdvance?: number;
+    time?: {
+      hour: number;
+      minute: number;
     };
-    notification?: NotificationSettings;
-    paymentHistory: Record<string, PaymentStatus>;
-    service?: {
-        id: string;
-        name: string;
-        logo: string;
-        customName?: string;
+  };
+  paymentHistory: {
+    [key: string]: {
+      isPaid: boolean;
+      paidDate?: string;
     };
-};
+  };
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
-export type { RecurrenceType, Occurrence, PaymentStatus };
-export { ExpenseItem };
-export default ExpenseItem;
+export interface Occurrence {
+  id: string;
+  date: string;
+  amount: number;
+  currency: string;
+  name: string;
+  color?: string;
+  paymentStatus?: {
+    isPaid: boolean;
+    paidDate?: string;
+  };
+  originalExpense: ExpenseItem;
+}

@@ -1,22 +1,28 @@
-export type RecurrenceType = 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
-type IntervalUnit = 'day' | 'month';
-
-export type IncomeItem = {
+export interface Income {
   id: string;
+  userId?: string;
   amount: number;
   currency: string;
   name: string;
+  date: Date;
   startDate: string;
-  color: string;
+  color?: string;
   recurrence: {
-    type: RecurrenceType;
+    type: 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
     interval?: number;
-    intervalUnit?: IntervalUnit;
+    intervalUnit?: 'day' | 'month';
     endDate?: string;
   };
-};
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
-export type Occurrence = {
+export interface Occurrence {
+  id: string;
   date: string;
   amount: number;
-};
+  currency: string;
+  name: string;
+  color?: string;
+  originalIncome: Income;
+}

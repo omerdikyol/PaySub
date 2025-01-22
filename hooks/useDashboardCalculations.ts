@@ -59,10 +59,21 @@ export function useDashboardCalculations(
     const totalExpense = convertedExpenses.reduce((sum, exp) => sum + exp.convertedAmount, 0);
     
     // Calculate paid vs unpaid expenses in preferred currency
-    const paidExpenses = convertedExpenses.reduce((sum, exp) => 
-      sum + (exp.paymentStatus?.isPaid ? exp.convertedAmount : 0), 0);
-    const unpaidExpenses = convertedExpenses.reduce((sum, exp) => 
-      sum + (!exp.paymentStatus?.isPaid ? exp.convertedAmount : 0), 0);
+    const paidExpenses = convertedExpenses.reduce((sum, exp) => {
+      const expenseDate = exp.date.split('T')[0];
+      const paymentHistoryEntry = Object.entries(exp.originalExpense?.paymentHistory || {})
+        .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
+      const isPaid = paymentHistoryEntry?.[1]?.isPaid ?? false;
+      return sum + (isPaid ? exp.convertedAmount : 0);
+    }, 0);
+
+    const unpaidExpenses = convertedExpenses.reduce((sum, exp) => {
+      const expenseDate = exp.date.split('T')[0];
+      const paymentHistoryEntry = Object.entries(exp.originalExpense?.paymentHistory || {})
+        .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
+      const isPaid = paymentHistoryEntry?.[1]?.isPaid ?? false;
+      return sum + (!isPaid ? exp.convertedAmount : 0);
+    }, 0);
 
     // Calculate remaining budget
     const remaining = totalIncome - totalExpense;

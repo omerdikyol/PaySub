@@ -5,7 +5,8 @@ import {
   Modal, 
   TouchableOpacity, 
   ScrollView,
-  SectionList 
+  SectionList,
+  Text
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { ThemedText, ThemedView } from '../Themed';
@@ -107,6 +108,36 @@ export const BasePaymentHistoryModal = ({
           </TouchableOpacity>
         )}
       </View>
+    );
+  };
+
+  const renderPaymentButton = (payment: BasePayment) => {
+    const isPaid = payment.paymentStatus?.isPaid;
+    
+    if (isPaid) {
+      return (
+        <TouchableOpacity
+          style={[styles.paymentButton, styles.paidButton]}
+          onPress={() => onPaymentToggle(payment)}
+        >
+          <FontAwesome name="check" size={12} color="#fff" />
+          <Text style={styles.paymentStatusText}>{t('paid')}</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    const isOverdue = new Date(payment.date) < new Date();
+    return (
+      <TouchableOpacity
+        style={[
+          styles.paymentButton,
+          isOverdue ? styles.overdueButton : styles.unpaidButton
+        ]}
+        onPress={() => onPaymentToggle(payment)}
+      >
+        <FontAwesome name="credit-card" size={14} color="#fff" style={{ opacity: 0.7 }} />
+        <Text style={styles.paymentStatusText}>{t('payNow')}</Text>
+      </TouchableOpacity>
     );
   };
 
@@ -307,5 +338,13 @@ const styles = StyleSheet.create({
       color: '#fff',
       fontSize: 14,
       fontWeight: '500',
-    }
+    },
+    paymentButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 16,
+      gap: 6,
+    },
   });

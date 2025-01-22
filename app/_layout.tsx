@@ -26,7 +26,7 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
-  const { user, isLoading } = useAuth();
+  const { currentUser, isLoading } = useAuth();
   const colorScheme = useColorScheme();
 
   // You can keep the splash screen open until authentication is checked
@@ -37,7 +37,7 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
-        {!user ? (
+        {!currentUser ? (
           <>
             <Stack.Screen name="login" />
             <Stack.Screen name="register" />
@@ -76,17 +76,17 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <LanguageProvider>
-        <CurrencyProvider>
-          <FinanceProvider>
-            <NotificationProvider>
-              <AuthProvider>
+      <AuthProvider>
+        <LanguageProvider>
+          <CurrencyProvider>
+            <FinanceProvider>
+              <NotificationProvider>
                 <RootLayoutNav />
-              </AuthProvider>
-            </NotificationProvider>
-          </FinanceProvider>
-        </CurrencyProvider>
-      </LanguageProvider>
+              </NotificationProvider>
+            </FinanceProvider>
+          </CurrencyProvider>
+        </LanguageProvider>
+      </AuthProvider>
     </GestureHandlerRootView>
   );
 }

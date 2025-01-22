@@ -131,13 +131,16 @@ export function AddIncomeModal({
       amount: numericAmount,
       currency,
       name,
+      date: startDate,
       startDate: startDate.toISOString(),
       color: selectedColor,
       recurrence: {
         type: recurrenceType,
-        interval: recurrenceType === 'custom' ? parseInt(customInterval) : undefined,
-        intervalUnit: recurrenceType === 'custom' ? intervalUnit : undefined,
-        endDate: endDate?.toISOString()
+        ...(recurrenceType === 'custom' && {
+          interval: parseInt(customInterval),
+          intervalUnit
+        }),
+        ...(endDate && { endDate: endDate.toISOString() })
       }
     });
 

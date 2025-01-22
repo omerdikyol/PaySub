@@ -143,14 +143,15 @@ export function AddExpenseModal({
       // Skip service selection when editing
       setShowServiceSelection(false);
 
-      // Initialize notification settings from existing expense
-      if (initialExpense.notification) {
-        setNotificationSettings({
-          enabled: initialExpense.notification.enabled && notificationsEnabled,
-          daysInAdvance: initialExpense.notification.daysInAdvance,
-          time: initialExpense.notification.time
-        });
-      }
+      // Initialize notification settings from existing expense with default values
+      setNotificationSettings({
+        enabled: initialExpense.notification?.enabled ?? notificationsEnabled,
+        daysInAdvance: initialExpense.notification?.daysInAdvance ?? 1,
+        time: initialExpense.notification?.time ?? {
+          hour: 12,
+          minute: 0
+        }
+      });
     }
   }, [initialExpense, visible, notificationsEnabled]);
 
@@ -198,21 +199,32 @@ export function AddExpenseModal({
       amount: numericAmount,
       currency,
       name,
+      date: startDate,
       startDate: startDate.toISOString(),
       color: selectedColor,
       recurrence: {
         type: recurrenceType,
-        interval: recurrenceType === 'custom' ? parseInt(customInterval) : undefined,
-        intervalUnit: recurrenceType === 'custom' ? intervalUnit : undefined,
-        endDate: endDate?.toISOString()
+        ...(recurrenceType === 'custom' && {
+          interval: parseInt(customInterval),
+          intervalUnit
+        }),
+        ...(endDate && { endDate: endDate.toISOString() })
       },
-      service: selectedService ? {
-        id: selectedService.id,
-        name: selectedService.name,
-        logo: selectedService.logo,
-        customName: customServiceName || undefined
-      } : undefined,
-      notification: notificationSettings,
+      ...(selectedService && {
+        service: {
+          id: selectedService.id,
+          name: selectedService.name,
+          ...(selectedService.logo && { logo: selectedService.logo }),
+          ...(customServiceName && { customName: customServiceName })
+        }
+      }),
+      notification: {
+        enabled: notificationSettings.enabled,
+        ...(notificationSettings.enabled && {
+          daysInAdvance: notificationSettings.daysInAdvance,
+          time: notificationSettings.time
+        })
+      },
       paymentHistory: initialExpense?.paymentHistory || {}
     };
 

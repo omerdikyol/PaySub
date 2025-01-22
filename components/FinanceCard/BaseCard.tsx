@@ -40,7 +40,7 @@ type BaseCardProps = {
 };
 
 export const BaseCard = ({ item, onPress, renderRightColumn }: BaseCardProps) => {
-  const { colors } = useTheme();
+  const { colors, colorScheme } = useTheme();
   const { t } = useLanguage();
   const {
     fadeAnim,
@@ -96,7 +96,9 @@ export const BaseCard = ({ item, onPress, renderRightColumn }: BaseCardProps) =>
           { 
             backgroundColor: Platform.OS === 'ios' 
               ? colors.card.subtle 
-              : colors.background
+              : colorScheme === 'dark'
+                ? colors.card.background
+                : colors.background
           }
         ]}>
           {/* Color Accent */}

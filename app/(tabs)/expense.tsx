@@ -98,7 +98,12 @@ export default function Expense() {
     
     expenses.forEach(expense => {
       const color = expense.originalExpense.color || '#888888';
-      const isPaid = expense.paymentStatus?.isPaid;
+      // Find the payment status by matching just the date part (YYYY-MM-DD)
+      const expenseDate = expense.date.split('T')[0];
+      const paymentDate = Object.keys(expense.originalExpense.paymentHistory || {})
+        .find(timestamp => timestamp.split('T')[0] === expenseDate);
+      const paymentStatus = paymentDate ? expense.originalExpense.paymentHistory?.[paymentDate] : undefined;
+      const isPaid = paymentStatus?.isPaid ?? false;
       const targetGroups = isPaid ? paidGroups : unpaidGroups;
       
       if (!targetGroups[color]) {
@@ -110,7 +115,13 @@ export default function Expense() {
           items: []
         };
       }
-      targetGroups[color].items.push(expense);
+      targetGroups[color].items.push({
+        ...expense,
+        paymentStatus: {
+          isPaid,
+          paidDate: paymentStatus?.paidDate
+        }
+      });
       targetGroups[color].total += expense.amount;
       
       if (isPaid) {
@@ -135,34 +146,69 @@ export default function Expense() {
   };
 
   const { unpaid, paid } = isGrouped ? groupExpensesByColorAndPaymentStatus(sortedOccurrences) : {
-    unpaid: { title: 'Unpaid Expenses', data: sortedOccurrences.filter(e => !e.paymentStatus?.isPaid), total: 0 },
-    paid: { title: 'Paid Expenses', data: sortedOccurrences.filter(e => e.paymentStatus?.isPaid), total: 0 }
+    unpaid: { 
+      title: 'Unpaid Expenses', 
+      data: sortedOccurrences.filter(e => {
+        const expenseDate = e.date.split('T')[0];
+        const paymentDate = Object.keys(e.originalExpense.paymentHistory || {})
+          .find(timestamp => timestamp.split('T')[0] === expenseDate);
+        return !paymentDate || !e.originalExpense.paymentHistory?.[paymentDate]?.isPaid;
+      }), 
+      total: 0 
+    },
+    paid: { 
+      title: 'Paid Expenses', 
+      data: sortedOccurrences.filter(e => {
+        const expenseDate = e.date.split('T')[0];
+        const paymentDate = Object.keys(e.originalExpense.paymentHistory || {})
+          .find(timestamp => timestamp.split('T')[0] === expenseDate);
+        return paymentDate && e.originalExpense.paymentHistory?.[paymentDate]?.isPaid;
+      }), 
+      total: 0 
+    }
   };
 
-  const handlePaymentToggle = (occurrence: typeof monthOccurrences[0]) => {
-    const dateStr = occurrence.date;
-    const newIsPaidStatus = !occurrence.paymentStatus?.isPaid;
+  const handlePaymentToggle = async (occurrence: typeof monthOccurrences[0]) => {
+    const expenseDate = occurrence.date.split('T')[0];
+    // Check current payment status from paymentHistory
+    const paymentHistoryEntry = Object.entries(occurrence.originalExpense.paymentHistory || {})
+      .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
+    const currentIsPaid = paymentHistoryEntry?.[1]?.isPaid ?? false;
+    const newIsPaidStatus = !currentIsPaid;
     
-    updateExpensePaymentStatus(
-      occurrence.originalExpense.id,
-      dateStr,
-      newIsPaidStatus
-    );
+    try {
+      // Check if there's an existing payment entry for this date
+      const existingPaymentDate = Object.keys(occurrence.originalExpense.paymentHistory || {})
+        .find(timestamp => timestamp.split('T')[0] === expenseDate);
 
-    setRelatedPayments(prev => 
-      prev.map(payment => {
-        if (payment.id === occurrence.id) {
+      // Use existing timestamp if available, otherwise create new one
+      const timestamp = existingPaymentDate || new Date().toISOString();
+      
+      await updateExpensePaymentStatus(
+        occurrence.originalExpense.id,
+        timestamp,
+        newIsPaidStatus
+      );
+
+      // Update the local state immediately for better UI responsiveness
+      const updatedOccurrences = sortedOccurrences.map(occ => {
+        if (occ.id === occurrence.id) {
           return {
-            ...payment,
+            ...occ,
             paymentStatus: {
               isPaid: newIsPaidStatus,
-              paidDate: newIsPaidStatus ? new Date().toISOString() : undefined
+              paidDate: newIsPaidStatus ? timestamp : undefined
             }
           };
         }
-        return payment;
-      })
-    );
+        return occ;
+      });
+
+      // Switch to the appropriate tab
+      setActiveTab(newIsPaidStatus ? 'paid' : 'unpaid');
+    } catch (error) {
+      console.error('Failed to update payment status:', error);
+    }
   };
 
   // Add new function to get all related payments

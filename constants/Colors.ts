@@ -76,7 +76,7 @@ const Colors = {
       background: '#1e1e1e',
       shadow: '#ffffff',
       title: '#888888',
-      subtle: '#1a1a1a'
+      subtle: '#2a2a2a'
     }
   }
 };

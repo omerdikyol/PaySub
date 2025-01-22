@@ -1,111 +1,219 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { IncomeItem } from '@/app/types/income';
-import { ExpenseItem } from '@/app/types/expense';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { expenseService, Expense } from '../services/firebase/expense.service';
+import { incomeService, Income } from '../services/firebase/income.service';
 
 interface FinanceContextType {
-  incomes: IncomeItem[];
-  expenses: ExpenseItem[];
-  addIncome: (income: Omit<IncomeItem, 'id'>) => void;
-  addExpense: (expense: Omit<ExpenseItem, 'id'>) => void;
-  updateIncome: (id: string, income: Omit<IncomeItem, 'id'>) => void;
-  updateExpense: (id: string, expense: Omit<ExpenseItem, 'id'>) => void;
-  deleteIncome: (id: string) => void;
-  deleteExpense: (id: string) => void;
-  updateExpensePaymentStatus: (expenseId: string, date: string, isPaid: boolean) => void;
+  expenses: Expense[];
+  incomes: Income[];
+  isLoading: boolean;
+  error: string | null;
+  addExpense: (expense: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateExpense: (id: string, expense: Partial<Omit<Expense, 'id' | 'userId' | 'createdAt'>>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
+  updateExpensePaymentStatus: (id: string, date: string, isPaid: boolean) => Promise<void>;
+  addIncome: (income: Omit<Income, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateIncome: (id: string, income: Partial<Omit<Income, 'id' | 'userId' | 'createdAt'>>) => Promise<void>;
+  deleteIncome: (id: string) => Promise<void>;
+  refreshData: (startDate?: Date, endDate?: Date) => Promise<void>;
 }
 
-const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
+const FinanceContext = createContext<FinanceContextType | null>(null);
 
-export function FinanceProvider({ children }: { children: React.ReactNode }) {
-  const [incomes, setIncomes] = useState<IncomeItem[]>([]);
-  const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
-
-  const addIncome = useCallback((income: Omit<IncomeItem, 'id'>) => {
-    const newIncome: IncomeItem = {
-      ...income,
-      id: Date.now().toString(),
-    };
-    setIncomes(prev => {
-      const updated = [...prev, newIncome];
-      return updated;
-    });
-  }, []);
-
-  const addExpense = useCallback((expense: Omit<ExpenseItem, 'id'>) => {
-    const newExpense: ExpenseItem = {
-      ...expense,
-      id: Date.now().toString(),
-      paymentHistory: {},
-    };
-    setExpenses(prev => [...prev, newExpense]);
-  }, []);
-
-  const updateIncome = useCallback((id: string, income: Omit<IncomeItem, 'id'>) => {
-    setIncomes(prev => 
-      prev.map(item => item.id === id ? { ...income, id } : item)
-    );
-  }, []);
-
-  const updateExpense = useCallback((id: string, expense: Omit<ExpenseItem, 'id'>) => {
-    setExpenses(prev => 
-      prev.map(item => 
-        item.id === id 
-          ? { ...expense, id, paymentHistory: item.paymentHistory }
-          : item
-      )
-    );
-  }, []);
-
-  const deleteIncome = useCallback((id: string) => {
-    setIncomes(prev => prev.filter(item => item.id !== id));
-  }, []);
-
-  const deleteExpense = useCallback((id: string) => {
-    setExpenses(prev => prev.filter(item => item.id !== id));
-  }, []);
-
-  const updateExpensePaymentStatus = useCallback((
-    expenseId: string,
-    date: string,
-    isPaid: boolean
-  ) => {
-    setExpenses(prev => prev.map(expense => {
-      if (expense.id !== expenseId) return expense;
-
-      return {
-        ...expense,
-        paymentHistory: {
-          ...expense.paymentHistory,
-          [date]: {
-            isPaid,
-            paidDate: isPaid ? new Date().toISOString() : undefined,
-          },
-        },
-      };
-    }));
-  }, []);
-
-  return (
-    <FinanceContext.Provider value={{
-      incomes,
-      expenses,
-      addIncome,
-      addExpense,
-      updateIncome,
-      updateExpense,
-      deleteIncome,
-      deleteExpense,
-      updateExpensePaymentStatus,
-    }}>
-      {children}
-    </FinanceContext.Provider>
-  );
-}
-
-export function useFinance() {
+export const useFinance = () => {
   const context = useContext(FinanceContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useFinance must be used within a FinanceProvider');
   }
   return context;
-}
+};
+
+export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentUser } = useAuth();
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [incomes, setIncomes] = useState<Income[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refreshData = async (startDate?: Date, endDate?: Date) => {
+    if (!currentUser) return;
+    
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [fetchedExpenses, fetchedIncomes] = await Promise.all([
+        expenseService.getExpenses(currentUser.uid, startDate, endDate),
+        incomeService.getIncomes(currentUser.uid, startDate, endDate)
+      ]);
+      setExpenses(fetchedExpenses);
+      setIncomes(fetchedIncomes);
+    } catch (err) {
+      setError('Failed to fetch financial data');
+      console.error('Error fetching financial data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      refreshData();
+    }
+  }, [currentUser]);
+
+  const addExpense = async (expense: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+    if (!currentUser) return;
+    try {
+      const expenseWithDate = {
+        ...expense,
+        date: expense.date instanceof Date ? expense.date : new Date(expense.date),
+      };
+
+      await expenseService.addExpense({
+        ...expenseWithDate,
+        userId: currentUser.uid
+      });
+      await refreshData();
+    } catch (err) {
+      setError('Failed to add expense');
+      throw err;
+    }
+  };
+
+  const updateExpense = async (id: string, expense: Partial<Omit<Expense, 'id' | 'userId' | 'createdAt'>>) => {
+    if (!currentUser) return;
+    try {
+      await expenseService.updateExpense(id, expense);
+      await refreshData();
+    } catch (err) {
+      setError('Failed to update expense');
+      throw err;
+    }
+  };
+
+  const deleteExpense = async (id: string) => {
+    if (!currentUser) return;
+    try {
+      await expenseService.deleteExpense(id);
+      await refreshData();
+    } catch (err) {
+      setError('Failed to delete expense');
+      throw err;
+    }
+  };
+
+  const updateExpensePaymentStatus = async (id: string, date: string, isPaid: boolean) => {
+    if (!currentUser) return;
+    try {
+      // First update the local state immediately for UI responsiveness
+      setExpenses(prevExpenses => 
+        prevExpenses.map(expense => {
+          if (expense.id === id) {
+            return {
+              ...expense,
+              paymentHistory: {
+                ...expense.paymentHistory,
+                [date]: {
+                  isPaid,
+                  paidDate: isPaid ? new Date().toISOString() : null
+                }
+              }
+            };
+          }
+          return expense;
+        })
+      );
+
+      // Then update the server
+      await expenseService.updateExpensePaymentStatus(id, date, isPaid);
+      
+      // Wait a bit before refreshing to ensure server consistency
+      setTimeout(async () => {
+        await refreshData();
+      }, 500);
+    } catch (err) {
+      // If there's an error, revert the local state
+      setExpenses(prevExpenses => 
+        prevExpenses.map(expense => {
+          if (expense.id === id) {
+            return {
+              ...expense,
+              paymentHistory: {
+                ...expense.paymentHistory,
+                [date]: {
+                  isPaid: !isPaid,
+                  paidDate: !isPaid ? new Date().toISOString() : null
+                }
+              }
+            };
+          }
+          return expense;
+        })
+      );
+      setError('Failed to update expense payment status');
+      throw err;
+    }
+  };
+
+  const addIncome = async (income: Omit<Income, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+    if (!currentUser) return;
+    try {
+      const incomeWithDate = {
+        ...income,
+        date: income.date instanceof Date ? income.date : new Date(income.date),
+      };
+
+      await incomeService.addIncome({
+        ...incomeWithDate,
+        userId: currentUser.uid
+      });
+      await refreshData();
+    } catch (err) {
+      setError('Failed to add income');
+      throw err;
+    }
+  };
+
+  const updateIncome = async (id: string, income: Partial<Omit<Income, 'id' | 'userId' | 'createdAt'>>) => {
+    if (!currentUser) return;
+    try {
+      await incomeService.updateIncome(id, income);
+      await refreshData();
+    } catch (err) {
+      setError('Failed to update income');
+      throw err;
+    }
+  };
+
+  const deleteIncome = async (id: string) => {
+    if (!currentUser) return;
+    try {
+      await incomeService.deleteIncome(id);
+      await refreshData();
+    } catch (err) {
+      setError('Failed to delete income');
+      throw err;
+    }
+  };
+
+  const value = {
+    expenses,
+    incomes,
+    isLoading,
+    error,
+    addExpense,
+    updateExpense,
+    deleteExpense,
+    updateExpensePaymentStatus,
+    addIncome,
+    updateIncome,
+    deleteIncome,
+    refreshData
+  };
+
+  return (
+    <FinanceContext.Provider value={value}>
+      {children}
+    </FinanceContext.Provider>
+  );
+};
