@@ -272,15 +272,21 @@ export default function Settings() {
         if (currentUser) {
             return (
                 <ThemedView style={[styles.section, { backgroundColor: colors.card.background }]}>
-                    <ThemedView style={styles.userInfo}>
-                        <ThemedText style={styles.userName}>{currentUser.displayName || currentUser.email}</ThemedText>
-                        <ThemedText style={styles.userEmail}>{currentUser.email}</ThemedText>
-                    </ThemedView>
+                    <View style={styles.userHeader}>
+                        <View style={[styles.avatarContainer, { backgroundColor: colors.primary + '20' }]}>
+                            <FontAwesome name="user" size={32} color={colors.primary} />
+                        </View>
+                        <View style={styles.userInfo}>
+                            <ThemedText style={styles.userName}>{currentUser.displayName || currentUser.email?.split('@')[0]}</ThemedText>
+                            <ThemedText style={styles.userEmail}>{currentUser.email}</ThemedText>
+                        </View>
+                    </View>
                     <TouchableOpacity
-                        style={[styles.logoutButton, { backgroundColor: colors.error }]}
+                        style={[styles.logoutButton, { backgroundColor: colors.error + '10' }]}
                         onPress={handleLogout}
                     >
-                        <ThemedText style={styles.logoutButtonText}>{t('logout')}</ThemedText>
+                        <FontAwesome name="sign-out" size={20} color={colors.error} />
+                        <ThemedText style={[styles.logoutButtonText, { color: colors.error }]}>{t('logout')}</ThemedText>
                     </TouchableOpacity>
                 </ThemedView>
             );
@@ -325,9 +331,15 @@ export default function Settings() {
                         <Switch
                             value={colorScheme === 'dark'}
                             onValueChange={handleThemeChange}
-                            trackColor={{ false: '#767577', true: colors.primary }}
-                            thumbColor="#ffffff"
-                            ios_backgroundColor="#767577"
+                            trackColor={{ 
+                                false: colors.background === '#000000' ? '#3A3A3C' : '#E5E5EA',
+                                true: '#2563EB'
+                            }}
+                            thumbColor={
+                                colorScheme === 'dark' ? '#60A5FA' : '#93C5FD'
+                            }
+                            ios_backgroundColor={colors.background === '#000000' ? '#3A3A3C' : '#E5E5EA'}
+                            style={{ transform: [{ scaleX: 0.95 }, { scaleY: 0.9 }] }}
                         />
                     </SettingRow>
                     <SettingRow 
@@ -369,9 +381,15 @@ export default function Settings() {
                         <Switch
                             value={notificationsEnabled}
                             onValueChange={handleNotificationChange}
-                            trackColor={{ false: '#767577', true: colors.primary }}
-                            thumbColor="#ffffff"
-                            ios_backgroundColor="#767577"
+                            trackColor={{ 
+                                false: colors.background === '#000000' ? '#3A3A3C' : '#E5E5EA',
+                                true: '#2563EB'
+                            }}
+                            thumbColor={
+                                notificationsEnabled ? '#60A5FA' : '#93C5FD'
+                            }
+                            ios_backgroundColor={colors.background === '#000000' ? '#3A3A3C' : '#E5E5EA'}
+                            style={{ transform: [{ scaleX: 0.95 }, { scaleY: 0.9 }] }}
                         />
                     </SettingRow>
                 </SettingSection>
@@ -615,25 +633,43 @@ const styles = StyleSheet.create({
         marginTop: 12,
         paddingVertical: 8,
     },
+    userHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+        paddingHorizontal: 20,
+        paddingTop: 20,
+    },
+    avatarContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+    },
     userInfo: {
-        marginBottom: 15,
+        flex: 1,
     },
     userName: {
         fontSize: 20,
         fontWeight: 'bold',
-        marginBottom: 5,
+        marginBottom: 4,
     },
     userEmail: {
-        fontSize: 16,
+        fontSize: 14,
         opacity: 0.7,
     },
     logoutButton: {
-        padding: 12,
-        borderRadius: 8,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
+        marginHorizontal: 20,
+        padding: 12,
+        borderRadius: 12,
+        gap: 8,
     },
     logoutButtonText: {
-        color: '#FFFFFF',
         fontSize: 16,
         fontWeight: '600',
     },

@@ -74,6 +74,11 @@ export default function Expense() {
     isGrouped
   );
 
+  // Reset to outstanding tab when month changes
+  useEffect(() => {
+    setActiveTab('unpaid');
+  }, [currentDate]);
+
   const {
     isModalVisible,
     editingItem: editingExpense,
@@ -111,7 +116,7 @@ export default function Expense() {
           id: color,
           color,
           total: 0,
-          currency: expense.originalExpense.currency,
+          currency: preferredCurrency,
           items: []
         };
       }
@@ -122,12 +127,12 @@ export default function Expense() {
           paidDate: paymentStatus?.paidDate
         }
       });
-      targetGroups[color].total += expense.amount;
+      targetGroups[color].total += expense.convertedAmount;
       
       if (isPaid) {
-        paidTotal += expense.amount;
+        paidTotal += expense.convertedAmount;
       } else {
-        unpaidTotal += expense.amount;
+        unpaidTotal += expense.convertedAmount;
       }
     });
 
@@ -324,14 +329,20 @@ export default function Expense() {
 
   const renderTabSelector = () => {
     const screenWidth = Dimensions.get('window').width;
-    const containerPadding = 10;
-    const tabWidth = (screenWidth - (containerPadding * 2)) / 2;
-    const indicatorWidth = tabWidth - 32;
+    const containerPadding = 16;
+    const containerWidth = screenWidth - (containerPadding * 2);
+    const tabWidth = containerWidth / 2;
     const translateX = useRef(new Animated.Value(0)).current;
+
+    // Use different colors for light and dark mode for tab indicator
+    const isDarkMode = colors.background === '#000000';
+    const highlightColor = isDarkMode 
+      ? '#FFFFFF20'  // White with 12% opacity for dark mode
+      : colors.primary + '15'; // Primary color with 15% opacity for light mode
 
     useEffect(() => {
       Animated.spring(translateX, {
-        toValue: activeTab === 'unpaid' ? 16 : tabWidth + 16,
+        toValue: activeTab === 'unpaid' ? 0 : tabWidth,
         useNativeDriver: true,
         damping: 20,
         mass: 1,
@@ -340,53 +351,59 @@ export default function Expense() {
     }, [activeTab]);
 
     return (
-      <View style={[styles.tabContainer]}>
-        <Animated.View style={[
-          styles.tabIndicator,
-          {
-            width: indicatorWidth,
-            transform: [{ translateX }],
-            backgroundColor: '#007AFF',
-          }
-        ]} />
-        
-        <TouchableOpacity 
-          style={[styles.tab]}
-          onPress={() => setActiveTab('unpaid')}
-        >
-          <ThemedText style={[
-            styles.tabText,
-            activeTab === 'unpaid' && styles.activeTabText
-          ]}>
-            {t('outstanding')}
-          </ThemedText>
-          {unpaid.data.length > 0 && (
-            <View style={[styles.badge, { backgroundColor: '#007AFF' }]}>
-              <ThemedText style={styles.badgeText}>
-                {unpaid.data.length}
+      <View style={[styles.tabOuterContainer]}>
+        <View style={[styles.tabContainer, { backgroundColor: colors.card, width: containerWidth }]}>
+          <Animated.View style={[
+            styles.tabIndicator,
+            {
+              width: tabWidth,
+              transform: [{ translateX }],
+              backgroundColor: highlightColor,
+            }
+          ]} />
+          
+          <TouchableOpacity 
+            style={[styles.tab, { width: tabWidth }]}
+            onPress={() => setActiveTab('unpaid')}
+          >
+            <View style={styles.tabContent}>
+              <ThemedText style={[
+                styles.tabText,
+                activeTab === 'unpaid' && styles.activeTabText
+              ]}>
+                {t('outstanding')}
               </ThemedText>
+              {unpaid.data.length > 0 && (
+                <View style={[styles.badge, { backgroundColor: '#007AFF' }]}>
+                  <ThemedText style={styles.badgeText}>
+                    {unpaid.data.length}
+                  </ThemedText>
+                </View>
+              )}
             </View>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.tab]}
-          onPress={() => setActiveTab('paid')}
-        >
-          <ThemedText style={[
-            styles.tabText,
-            activeTab === 'paid' && styles.activeTabText
-          ]}>
-            {t('paid')}
-          </ThemedText>
-          {paid.data.length > 0 && (
-            <View style={[styles.badge, { backgroundColor: '#007AFF' }]}>
-              <ThemedText style={styles.badgeText}>
-                {paid.data.length}
+          <TouchableOpacity 
+            style={[styles.tab, { width: tabWidth }]}
+            onPress={() => setActiveTab('paid')}
+          >
+            <View style={styles.tabContent}>
+              <ThemedText style={[
+                styles.tabText,
+                activeTab === 'paid' && styles.activeTabText
+              ]}>
+                {t('paid')}
               </ThemedText>
+              {paid.data.length > 0 && (
+                <View style={[styles.badge, { backgroundColor: '#007AFF' }]}>
+                  <ThemedText style={styles.badgeText}>
+                    {paid.data.length}
+                  </ThemedText>
+                </View>
+              )}
             </View>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -596,26 +613,30 @@ const styles = StyleSheet.create({
   toggleButton: {
     padding: 8,
   },
+  tabOuterContainer: {
+    alignItems: 'center',
+    marginVertical: 2,
+  },
   tabContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 10,
     borderRadius: 12,
-    marginTop: 2,
-    marginBottom: 4,
     position: 'relative',
     height: 48,
+    overflow: 'hidden',
   },
   tabIndicator: {
     position: 'absolute',
+    top: 0,
     bottom: 0,
-    height: 2,
+    height: '100%',
   },
   tab: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+  },
+  tabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   tabText: {
