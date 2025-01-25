@@ -2,28 +2,15 @@ import { Response } from 'express';
 import { validationResult } from 'express-validator';
 import { AuthRequest } from '../middleware/auth';
 import { collections } from '../config/firebase';
+import { Income } from '../models/Income';
 
 export const getIncomes = async (req: AuthRequest, res: Response) => {
   try {
-    const { startDate, endDate } = req.query;
-    let query = collections.incomes.where('userId', '==', req.user?.id);
-
-    if (startDate && endDate) {
-      query = query
-        .where('startDate', '>=', new Date(startDate as string))
-        .where('startDate', '<=', new Date(endDate as string));
-    }
-
-    const snapshot = await query.orderBy('startDate', 'asc').get();
-    const incomes = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
+    const userId = req.user?.id;
+    const incomes = await Income.find({ userId, isActive: true });
     res.json(incomes);
   } catch (error) {
-    console.error('Get incomes error:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ message: 'Error fetching incomes', error });
   }
 };
 
@@ -104,15 +91,21 @@ export const updateIncome = async (req: AuthRequest, res: Response) => {
 
 export const deleteIncome = async (req: AuthRequest, res: Response) => {
   try {
-    const doc = await collections.incomes.doc(req.params.id).get();
-    if (!doc.exists || doc.data()?.userId !== req.user?.id) {
-      return res.status(404).json({ error: 'Income not found' });
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    const income = await Income.findOneAndUpdate(
+      { _id: id, userId },
+      { isActive: false },
+      { new: true }
+    );
+
+    if (!income) {
+      return res.status(404).json({ message: 'Income not found' });
     }
 
-    await collections.incomes.doc(req.params.id).delete();
-    res.json({ message: 'Income deleted' });
+    res.json({ message: 'Income deleted successfully', income });
   } catch (error) {
-    console.error('Delete income error:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ message: 'Error deleting income', error });
   }
 }; 

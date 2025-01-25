@@ -266,13 +266,13 @@ export function AddIncomeModal({
                     </View>
                   </View>
                 </View>
-                <View style={styles.sectionContent}>
+                <View style={[styles.sectionContent, { backgroundColor: colors.card.background }]}>
                   <ThemedInput
                     label=""
                     value={name}
                     onChangeText={setName}
                     placeholder={t('enterIncomeName')}
-                    style={[styles.input, { marginBottom: 0 }]}
+                    style={[styles.input, { marginTop: -30, marginBottom: 0, backgroundColor: colors.card.background }]}
                   />
                 </View>
               </View>

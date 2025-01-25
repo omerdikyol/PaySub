@@ -14,6 +14,9 @@ export const translations = {
     haveAccount: 'Already have an account?',
     passwordsDoNotMatch: 'Passwords do not match',
     logout: 'Logout',
+    deleteAccount: 'Delete Account',
+    deleteAccountConfirmation: 'Are you sure you want to delete your account? This action cannot be undone.',
+    deleteAccountError: 'Failed to delete account. Please try again.',
 
     // Common
     save: 'Save',
@@ -25,6 +28,7 @@ export const translations = {
     total: 'Total',
     every: 'every',
     name: 'Name',
+    error: 'Error',
     
     // Tabs
     dashboard: 'Dashboard',
@@ -48,7 +52,7 @@ export const translations = {
     weekly: 'Weekly',
     monthly: 'Monthly',
     yearly: 'Yearly',
-    custom: 'Every {interval} {unit}',
+    custom: 'Customized',
     
     // Card Actions
     payNow: 'Pay Now',
@@ -75,7 +79,6 @@ export const translations = {
     testTomorrowNotification: "Test Tomorrow's Expense Notification",
     viewScheduledNotifications: 'View Scheduled Notifications',
     openSettings: 'Open Settings',
-    error: 'Error',
     notificationUpdateError: 'Failed to update notification settings. Please try again.',
     signInToContinue: 'Sign in to sync your data across devices',
 
@@ -84,7 +87,6 @@ export const translations = {
     editExpense: 'Edit Expense',
     amount: 'Amount',
     enterAmount: 'Enter expense amount and currency',
-    name: 'Name',
     enterName: 'Enter expense name',
     customName: 'Custom Name',
     optional: '(optional)',
@@ -183,7 +185,6 @@ export const translations = {
     sort: 'Sort',
     sortBy: 'Sort by',
     date: 'Date',
-    name: 'Name',
     price: 'Price',
     ascending: 'Ascending',
     descending: 'Descending',
@@ -247,7 +248,7 @@ export const translations = {
     menuOptions: 'Menu Options',
 
     // Service Selection Modal
-    selectService: 'Select {service}',
+    selectService: 'Select Service',
     selectSubscriptionService: 'Select Subscription Service',
     addCustomExpense: 'Add Custom Expense',
     close: 'Close',
@@ -277,13 +278,16 @@ export const translations = {
     register: 'Kayıt Ol',
     email: 'E-posta',
     password: 'Şifre',
-    confirmPassword: 'Şifre Tekrar',
-    name_label: 'Ad',
+    confirmPassword: 'Şifreyi Onayla',
+    name_label: 'İsim',
     createAccount: 'Hesap Oluştur',
     noAccount: 'Hesabınız yok mu?',
     haveAccount: 'Zaten hesabınız var mı?',
     passwordsDoNotMatch: 'Şifreler eşleşmiyor',
     logout: 'Çıkış Yap',
+    deleteAccount: 'Hesabı Sil',
+    deleteAccountConfirmation: 'Hesabınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.',
+    deleteAccountError: 'Hesap silinirken hata oluştu. Lütfen tekrar deneyin.',
 
     // Common
     save: 'Kaydet',
@@ -295,6 +299,7 @@ export const translations = {
     total: 'Toplam',
     every: 'her',
     name: 'İsim',
+    error: 'Hata',
     
     // Tabs
     dashboard: 'Panel',
@@ -318,7 +323,7 @@ export const translations = {
     weekly: 'Haftalık',
     monthly: 'Aylık',
     yearly: 'Yıllık',
-    custom: 'Her {interval} {unit}',
+    custom: 'Özelleştirilmiş',
     
     // Card Actions
     payNow: 'Şimdi Öde',
@@ -345,7 +350,6 @@ export const translations = {
     testTomorrowNotification: 'Yarının Gider Bildirimini Test Et',
     viewScheduledNotifications: 'Planlanmış Bildirimleri Görüntüle',
     openSettings: 'Ayarları Aç',
-    error: 'Hata',
     notificationUpdateError: 'Bildirim ayarları güncellenirken hata oluştu. Lütfen tekrar deneyin.',
     signInToContinue: 'Verilerinizi cihazlar arasında eşitlemek için lütfen giriş yapınız',
 
@@ -354,7 +358,6 @@ export const translations = {
     editExpense: 'Gideri Düzenle',
     amount: 'Tutar',
     enterAmount: 'Gider tutarını ve para birimini girin',
-    name: 'İsim',
     enterName: 'Gider ismini girin',
     customName: 'Özel İsim',
     optional: '(isteğe bağlı)',
@@ -453,7 +456,6 @@ export const translations = {
     sort: 'Sırala',
     sortBy: 'Sıralama ölçütü',
     date: 'Tarih',
-    name: 'İsim',
     price: 'Fiyat',
     ascending: 'Artan',
     descending: 'Azalan',

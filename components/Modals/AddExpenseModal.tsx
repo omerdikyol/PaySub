@@ -77,10 +77,7 @@ export function AddExpenseModal({
   // Recurrence
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('once');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
-  const [customInterval, setCustomInterval] = useState('1');
-  const [intervalUnit, setIntervalUnit] = useState<IntervalUnit>('month');
   const [showRecurrenceSheet, setShowRecurrenceSheet] = useState(false);
-  const [showCustomIntervalModal, setShowCustomIntervalModal] = useState(false);
 
   // Error handling
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -88,7 +85,6 @@ export function AddExpenseModal({
   // Service selection
   const [showServiceSelection, setShowServiceSelection] = useState(true);
   const [selectedService, setSelectedService] = useState<SubscriptionService | null>(null);
-  const [customServiceName, setCustomServiceName] = useState('');
 
   // Notification settings
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
@@ -120,12 +116,6 @@ export function AddExpenseModal({
       setSelectedColor(initialExpense.color);
       setRecurrenceType(initialExpense.recurrence.type);
 
-      if (initialExpense.recurrence.interval) {
-        setCustomInterval(initialExpense.recurrence.interval.toString());
-      }
-      if (initialExpense.recurrence.intervalUnit) {
-        setIntervalUnit(initialExpense.recurrence.intervalUnit);
-      }
       if (initialExpense.recurrence.endDate) {
         setEndDate(new Date(initialExpense.recurrence.endDate));
       }
@@ -137,7 +127,6 @@ export function AddExpenseModal({
           name: initialExpense.service.name,
           logo: initialExpense.service.logo,
         });
-        setCustomServiceName(initialExpense.service.customName || '');
       }
 
       // Skip service selection when editing
@@ -204,18 +193,13 @@ export function AddExpenseModal({
       color: selectedColor,
       recurrence: {
         type: recurrenceType,
-        ...(recurrenceType === 'custom' && {
-          interval: parseInt(customInterval),
-          intervalUnit
-        }),
         ...(endDate && { endDate: endDate.toISOString() })
       },
       ...(selectedService && {
         service: {
           id: selectedService.id,
           name: selectedService.name,
-          ...(selectedService.logo && { logo: selectedService.logo }),
-          ...(customServiceName && { customName: customServiceName })
+          ...(selectedService.logo && { logo: selectedService.logo })
         }
       }),
       notification: {
@@ -259,10 +243,7 @@ export function AddExpenseModal({
     setEndDate(null);
     setSelectedColor(COLORS[0]);
     setRecurrenceType('once');
-    setCustomInterval('1');
-    setIntervalUnit('month');
     setSelectedService(null); // Reset selected service
-    setCustomServiceName(''); // Reset custom service name
     setShowServiceSelection(true); // Reset to show service selection
   };
 
@@ -283,22 +264,6 @@ export function AddExpenseModal({
   const handleRecurrenceSelect = (type: RecurrenceType) => {
     setRecurrenceType(type);
     closeRecurrenceSheet();
-    if (type === 'custom') {
-      setShowCustomIntervalModal(true);
-    }
-  };
-
-  // Custom Interval
-  const handleCancelCustomInterval = () => {
-    // If user cancels, revert to 'once' or keep old logic
-    setRecurrenceType('once');
-    setShowCustomIntervalModal(false);
-  };
-  const handleSaveCustomInterval = (intervalValue: string, unit: IntervalUnit) => {
-    setCustomInterval(intervalValue);
-    setIntervalUnit(unit);
-    setRecurrenceType('custom');
-    setShowCustomIntervalModal(false);
   };
 
   // Add this handler for time selection
@@ -389,8 +354,8 @@ export function AddExpenseModal({
 
                 <View style={styles.divider} />
 
-                {/* NAME + CUSTOM NAME */}
-                <View style={styles.section}>
+                {/* NAME */}
+                <View style={[styles.section]}>
                   <View style={styles.sectionHeader}>
                     <View style={styles.sectionLabelContainer}>
                       <View style={[styles.iconContainer, { backgroundColor: '#007AFF20' }]}>
@@ -404,33 +369,14 @@ export function AddExpenseModal({
                       </View>
                     </View>
                   </View>
-                  <View style={styles.sectionContent}>
-                    <View style={{ gap: 12 }}>
-                      <View>
-                        <ThemedInput
-                          label=""
-                          value={name}
-                          onChangeText={setName}
-                          placeholder={t('enterName')}
-                          style={[styles.input, { marginBottom: 0 }]}
-                        />
-                      </View>
-                      {selectedService && (
-                        <View>
-                          <View style={styles.customNameLabelContainer}>
-                            <ThemedText style={styles.inputLabel}>{t('customName')}</ThemedText>
-                            <ThemedText style={styles.optionalText}>{t('optional')}</ThemedText>
-                          </View>
-                          <ThemedInput
-                            label=""
-                            value={customServiceName}
-                            onChangeText={setCustomServiceName}
-                            placeholder={`e.g., ${selectedService.name} Family`}
-                            style={[styles.input, { marginBottom: 0 }]}
-                          />
-                        </View>
-                      )}
-                    </View>
+                  <View style={[styles.sectionContent, { backgroundColor: colors.card.background }]}>
+                    <ThemedInput
+                      label=""
+                      value={name}
+                      onChangeText={setName}
+                      placeholder={t('enterName')}
+                      style={{ marginTop: -30, marginBottom: 0, backgroundColor: colors.card.background }}
+                    />
                   </View>
                 </View>
 
@@ -455,9 +401,7 @@ export function AddExpenseModal({
                       onPress={openRecurrenceSheet}
                     >
                       <ThemedText style={styles.recurrenceText}>
-                        {recurrenceType === 'custom'
-                          ? `${t('custom')} (${customInterval} ${t(intervalUnit === 'day' ? 'days' : 'months')})`
-                          : t(recurrenceType)}
+                        {t(recurrenceType)}
                       </ThemedText>
                       <FontAwesome name="chevron-down" size={12} color={colors.text} />
                     </TouchableOpacity>
@@ -514,8 +458,14 @@ export function AddExpenseModal({
                             </>
                           ) : (
                             <ThemedButton
-                              style={styles.endButton}
-                              textStyle={styles.buttonText}
+                              style={[
+                                styles.endButton,
+                                { backgroundColor: colors.primary }
+                              ]}
+                              textStyle={[
+                                styles.buttonText,
+                                { color: colors.background }
+                              ]}
                               onPress={() => {
                                 setEndPickerVisible(true);
                                 if (!endDate) setEndDate(new Date());
@@ -703,7 +653,7 @@ export function AddExpenseModal({
               <SafeAreaView style={styles.sheetBackdrop}>
                 <View style={[styles.sheetContainer, { backgroundColor: colors.card.background }]}>
                   <ThemedText style={styles.sheetTitle}>{t('recurrence')}</ThemedText>
-                  {(['once', 'daily', 'weekly', 'monthly', 'yearly', 'custom'] as RecurrenceType[]).map(
+                  {(['once', 'daily', 'weekly', 'monthly', 'yearly'] as RecurrenceType[]).map(
                     (item) => (
                       <TouchableOpacity
                         key={item}

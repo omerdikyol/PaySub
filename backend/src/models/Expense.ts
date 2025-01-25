@@ -33,6 +33,7 @@ export interface IExpense extends Document {
     logo: string;
     customName?: string;
   };
+  isActive: boolean;
 }
 
 const ExpenseSchema: Schema = new Schema({
@@ -103,6 +104,10 @@ const ExpenseSchema: Schema = new Schema({
     name: String,
     logo: String,
     customName: String,
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
   },
 }, {
   timestamps: true,

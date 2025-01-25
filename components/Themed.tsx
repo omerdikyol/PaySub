@@ -8,13 +8,18 @@ import { Text as DefaultText, View as DefaultView, Text as RNText, View as RNVie
 import Colors from '@/constants/Colors';
 import { useColorScheme } from './useColorScheme';
 import { useTheme } from './useTheme';
+import { fonts, fontConfig, fontSizes } from '@/constants/Fonts';
 
 type ThemeProps = {
   lightColor?: string;
   darkColor?: string;
 };
 
-export type TextProps = ThemeProps & DefaultText['props'];
+export type TextProps = ThemeProps & DefaultText['props'] & {
+  variant?: keyof typeof fontConfig;
+  size?: keyof typeof fontSizes;
+};
+
 export type ViewProps = ThemeProps & DefaultView['props'];
 
 export function useThemeColor(
@@ -32,10 +37,22 @@ export function useThemeColor(
 }
 
 export function Text(props: TextProps) {
-  const { style, lightColor, darkColor, ...otherProps } = props;
+  const { style, lightColor, darkColor, variant = 'body', size = 'md', ...otherProps } = props;
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
 
-  return <DefaultText style={[{ color }, style]} {...otherProps} />;
+  return (
+    <DefaultText 
+      style={[
+        { 
+          color,
+          fontFamily: fontConfig[variant],
+          fontSize: fontSizes[size],
+        }, 
+        style
+      ]} 
+      {...otherProps} 
+    />
+  );
 }
 
 export function View(props: ViewProps) {
@@ -50,9 +67,21 @@ export function ThemedView({ style, ...props }) {
   return <RNView style={[{ backgroundColor: colors.background }, style]} {...props} />;
 }
 
-export function ThemedText({ style, ...props }) {
+export function ThemedText({ style, variant = 'body', size = 'md', ...props }) {
   const { colors } = useTheme();
-  return <RNText style={[{ color: colors.text }, style]} {...props} />;
+  return (
+    <RNText 
+      style={[
+        { 
+          color: colors.text,
+          fontFamily: fontConfig[variant],
+          fontSize: fontSizes[size],
+        }, 
+        style
+      ]} 
+      {...props} 
+    />
+  );
 }
 
 export function ThemedCard({ style, ...props }) {
@@ -72,20 +101,34 @@ export function ThemedCard({ style, ...props }) {
   );
 }
 
-export function ThemedButton({ style, textStyle, ...props }) {
+export function ThemedButton({ style, textStyle, variant = 'button', size = 'md', ...props }) {
   const { colors } = useTheme();
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
-        styles.button,
-        { backgroundColor: colors.accent },
-        style
-      ]} 
+        {
+          backgroundColor: colors.primary,
+          padding: 12,
+          borderRadius: 8,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        style,
+      ]}
       {...props}
     >
-      <RNText style={[styles.buttonText, textStyle]}>
+      <ThemedText
+        style={[
+          {
+            color: '#fff',
+            fontFamily: fontConfig[variant],
+            fontSize: fontSizes[size],
+          },
+          textStyle,
+        ]}
+      >
         {props.children}
-      </RNText>
+      </ThemedText>
     </TouchableOpacity>
   );
 }
@@ -128,25 +171,30 @@ export function ThemedInput({
   const { colors } = useTheme();
 
   return (
-    <RNView style={styles.inputContainer}>
-      <RNText style={[styles.label, { color: colors.text }]}>{label}</RNText>
+    <View style={styles.inputContainer}>
+      <ThemedText variant="caption" size="sm" style={styles.label}>
+        {label}
+      </ThemedText>
       <TextInput
-        style={[
-          styles.input,
-          { 
-            color: colors.text,
-            backgroundColor: colors.card.background,
-            borderColor: colors.border
-          },
-          style
-        ]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.muted}
         keyboardType={keyboardType}
+        placeholderTextColor={colors.text + '80'}
+        style={[
+          styles.input,
+          {
+            color: colors.text,
+            backgroundColor: 'transparent',
+            borderColor: colors.border,
+            borderWidth: 1,
+            fontFamily: fontConfig.input,
+            fontSize: fontSizes.md,
+          },
+          style,
+        ]}
       />
-    </RNView>
+    </View>
   );
 }
 
@@ -160,16 +208,6 @@ const styles = StyleSheet.create({
     elevation: 3,
     marginBottom: 10,
   },
-  button: {
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   section: {
     borderRadius: 12,
     borderWidth: 1,
@@ -180,17 +218,14 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   inputContainer: {
-    marginBottom: 15,
+    marginBottom: 16,
   },
   label: {
-    fontSize: 16,
-    marginBottom: 5,
+    marginBottom: 8,
   },
   input: {
-    height: 40,
-    borderWidth: 1,
+    padding: 12,
     borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
+    backgroundColor: 'transparent',
   },
 });

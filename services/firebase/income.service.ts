@@ -11,6 +11,7 @@ export interface Income {
   currency: string;
   createdAt?: Date;
   updatedAt?: Date;
+  isActive: boolean;
 }
 
 export const incomeService = {
@@ -19,6 +20,7 @@ export const incomeService = {
       let q = query(
         collection(db, collections.incomes),
         where('userId', '==', userId),
+        where('isActive', '==', true),
         orderBy('date', 'desc')
       );
 
@@ -28,6 +30,7 @@ export const incomeService = {
           where('userId', '==', userId),
           where('date', '>=', startDate),
           where('date', '<=', endDate),
+          where('isActive', '==', true),
           orderBy('date', 'desc')
         );
       }
@@ -46,22 +49,26 @@ export const incomeService = {
     }
   },
 
-  async addIncome(income: Omit<Income, 'id' | 'createdAt' | 'updatedAt'>) {
+  async addIncome(income: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'isActive'>) {
     try {
-      const docRef = await addDoc(collection(db, collections.incomes), {
+      const incomeWithActive = {
         ...income,
+        isActive: true
+      };
+      const docRef = await addDoc(collection(db, collections.incomes), {
+        ...incomeWithActive,
         date: Timestamp.fromDate(income.date),
         createdAt: Timestamp.fromDate(new Date()),
         updatedAt: Timestamp.fromDate(new Date())
       });
-      return docRef.id;
+      return { id: docRef.id, ...incomeWithActive };
     } catch (error) {
       console.error('Error adding income:', error);
       throw error;
     }
   },
 
-  async updateIncome(id: string, income: Partial<Omit<Income, 'id' | 'createdAt'>>) {
+  async updateIncome(id: string, income: Partial<Omit<Income, 'id' | 'createdAt' | 'isActive'>>) {
     try {
       const incomeRef = doc(db, collections.incomes, id);
       await updateDoc(incomeRef, {
@@ -78,7 +85,10 @@ export const incomeService = {
   async deleteIncome(id: string) {
     try {
       const incomeRef = doc(db, collections.incomes, id);
-      await deleteDoc(incomeRef);
+      await updateDoc(incomeRef, {
+        isActive: false
+      });
+      return true;
     } catch (error) {
       console.error('Error deleting income:', error);
       throw error;

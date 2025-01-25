@@ -1,12 +1,11 @@
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert, Linking, Share, Modal, SafeAreaView } from 'react-native';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useColorScheme } from '@/components/useColorScheme';
 import { ThemedView, ThemedText, ThemedSection, ThemedButton } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
 import Colors, { setColorScheme } from '@/constants/Colors';
 import { ScreenLayout } from '@/components/ScreenLayout';
 import { NotificationService } from '@/services/NotificationService';
-import { RecurrenceType } from '@/app/types/expense';
 import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CurrencyPickerModal } from '@/components/Modals/CurrencyPickerModal';
@@ -85,7 +84,7 @@ export default function Settings() {
     const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
     const [showLanguagePicker, setShowLanguagePicker] = useState(false);
     const { preferredCurrency, setPreferredCurrency } = useCurrency();
-    const { currentUser, logout } = useAuth();
+    const { currentUser, logout, deleteUser } = useAuth();
 
     useEffect(() => {
         loadPreferredCurrency();
@@ -153,8 +152,9 @@ export default function Settings() {
                 id: 'test-expense-' + Date.now(),
                 name: t('testExpense'),
                 amount: 99.99,
-                currency: 'USD',
+                currency: preferredCurrency,
                 startDate: new Date().toISOString(),
+                date: new Date(),
                 color: '#FF6B6B',
                 notification: {
                     enabled: true,
@@ -165,7 +165,7 @@ export default function Settings() {
                     }
                 },
                 recurrence: {
-                    type: 'once' as RecurrenceType,
+                    type: 'once' as const,
                 },
                 paymentHistory: {}
             };
@@ -194,8 +194,9 @@ export default function Settings() {
                 id: 'test-scheduled-expense-' + Date.now(),
                 name: t('tomorrowTestExpense'),
                 amount: 149.99,
-                currency: 'USD',
+                currency: preferredCurrency,
                 startDate: tomorrow.toISOString(),
+                date: tomorrow,
                 color: '#4ECDC4',
                 notification: {
                     enabled: true,
@@ -206,7 +207,7 @@ export default function Settings() {
                     }
                 },
                 recurrence: {
-                    type: 'once' as RecurrenceType,
+                    type: 'once' as const,
                 },
                 paymentHistory: {}
             };
@@ -268,10 +269,38 @@ export default function Settings() {
         router.replace('/login');
     };
 
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            t('deleteAccount'),
+            t('deleteAccountConfirmation'),
+            [
+                {
+                    text: t('cancel'),
+                    style: 'cancel'
+                },
+                {
+                    text: t('delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteUser();
+                            router.replace('/login');
+                        } catch (error) {
+                            console.error('Error deleting account:', error);
+                            Alert.alert(t('error'), t('deleteAccountError'));
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const renderUserSection = () => {
+        const [showMenu, setShowMenu] = useState(false);
+        
         if (currentUser) {
             return (
-                <ThemedView style={[styles.section, { backgroundColor: colors.card.background }]}>
+                <ThemedView style={[styles.section]}>
                     <View style={styles.userHeader}>
                         <View style={[styles.avatarContainer, { backgroundColor: colors.primary + '20' }]}>
                             <FontAwesome name="user" size={32} color={colors.primary} />
@@ -280,20 +309,44 @@ export default function Settings() {
                             <ThemedText style={styles.userName}>{currentUser.displayName || currentUser.email?.split('@')[0]}</ThemedText>
                             <ThemedText style={styles.userEmail}>{currentUser.email}</ThemedText>
                         </View>
+                        <TouchableOpacity
+                            style={styles.menuButton}
+                            onPress={() => setShowMenu(!showMenu)}
+                        >
+                            <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
+                        </TouchableOpacity>
                     </View>
-                    <TouchableOpacity
-                        style={[styles.logoutButton, { backgroundColor: colors.error + '10' }]}
-                        onPress={handleLogout}
-                    >
-                        <FontAwesome name="sign-out" size={20} color={colors.error} />
-                        <ThemedText style={[styles.logoutButtonText, { color: colors.error }]}>{t('logout')}</ThemedText>
-                    </TouchableOpacity>
+                    {showMenu && (
+                        <View style={[styles.menuDropdown, { backgroundColor: colors.card.background }]}>
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={() => {
+                                    setShowMenu(false);
+                                    handleLogout();
+                                }}
+                            >
+                                <FontAwesome name="sign-out" size={20} color={colors.text} />
+                                <ThemedText style={styles.menuItemText}>{t('logout')}</ThemedText>
+                            </TouchableOpacity>
+                            <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={() => {
+                                    setShowMenu(false);
+                                    handleDeleteAccount();
+                                }}
+                            >
+                                <FontAwesome name="trash" size={20} color={colors.error} />
+                                <ThemedText style={[styles.menuItemText, { color: colors.error }]}>{t('deleteAccount')}</ThemedText>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </ThemedView>
             );
         }
 
         return (
-            <ThemedView style={[styles.authSection, { backgroundColor: colors.card.background }]}>
+            <ThemedView style={[styles.authSection]}>
                 <ThemedText style={styles.authTitle}>{t('welcomeBack')}</ThemedText>
                 <ThemedText style={styles.authDescription}>{t('signInToContinue')}</ThemedText>
                 <View style={styles.authButtonsContainer}>
@@ -636,7 +689,6 @@ const styles = StyleSheet.create({
     userHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
         paddingHorizontal: 20,
         paddingTop: 20,
     },
@@ -660,18 +712,39 @@ const styles = StyleSheet.create({
         fontSize: 14,
         opacity: 0.7,
     },
-    logoutButton: {
+    menuButton: {
+        padding: 8,
+        marginLeft: 8,
+    },
+    menuDropdown: {
+        position: 'absolute',
+        top: 80,
+        right: 20,
+        borderRadius: 12,
+        padding: 8,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+        zIndex: 1000,
+    },
+    menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        marginHorizontal: 20,
         padding: 12,
-        borderRadius: 12,
-        gap: 8,
+        borderRadius: 8,
     },
-    logoutButtonText: {
+    menuItemText: {
         fontSize: 16,
-        fontWeight: '600',
+        marginLeft: 12,
+    },
+    menuDivider: {
+        height: 1,
+        marginVertical: 4,
     },
     authSection: {
         marginBottom: 24,

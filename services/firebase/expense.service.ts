@@ -13,6 +13,7 @@ export interface Expense {
   updatedAt?: Date;
   paymentStatus?: 'paid' | 'unpaid';
   paymentHistory?: Record<string, boolean>;
+  isActive: boolean;
 }
 
 export const expenseService = {
@@ -21,6 +22,7 @@ export const expenseService = {
       let q = query(
         collection(db, collections.expenses),
         where('userId', '==', userId),
+        where('isActive', '==', true),
         orderBy('date', 'desc')
       );
 
@@ -30,6 +32,7 @@ export const expenseService = {
           where('userId', '==', userId),
           where('date', '>=', startDate),
           where('date', '<=', endDate),
+          where('isActive', '==', true),
           orderBy('date', 'desc')
         );
       }
@@ -48,15 +51,19 @@ export const expenseService = {
     }
   },
 
-  async addExpense(expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>) {
+  async addExpense(expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'isActive'>) {
     try {
-      const docRef = await addDoc(collection(db, collections.expenses), {
+      const expenseWithActive = {
         ...expense,
+        isActive: true
+      };
+      const docRef = await addDoc(collection(db, collections.expenses), {
+        ...expenseWithActive,
         date: Timestamp.fromDate(expense.date),
         createdAt: Timestamp.fromDate(new Date()),
         updatedAt: Timestamp.fromDate(new Date())
       });
-      return docRef.id;
+      return { id: docRef.id, ...expenseWithActive };
     } catch (error) {
       console.error('Error adding expense:', error);
       throw error;
@@ -80,7 +87,10 @@ export const expenseService = {
   async deleteExpense(id: string) {
     try {
       const expenseRef = doc(db, collections.expenses, id);
-      await deleteDoc(expenseRef);
+      await updateDoc(expenseRef, {
+        isActive: false
+      });
+      return true;
     } catch (error) {
       console.error('Error deleting expense:', error);
       throw error;

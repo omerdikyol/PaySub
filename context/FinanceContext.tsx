@@ -45,8 +45,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         expenseService.getExpenses(currentUser.uid, startDate, endDate),
         incomeService.getIncomes(currentUser.uid, startDate, endDate)
       ]);
-      setExpenses(fetchedExpenses);
-      setIncomes(fetchedIncomes);
+      setExpenses(fetchedExpenses.filter(expense => expense.isActive));
+      setIncomes(fetchedIncomes.filter(income => income.isActive));
     } catch (err) {
       setError('Failed to fetch financial data');
       console.error('Error fetching financial data:', err);
@@ -95,6 +95,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!currentUser) return;
     try {
       await expenseService.deleteExpense(id);
+      setExpenses(prev => prev.filter(expense => expense.id !== id));
       await refreshData();
     } catch (err) {
       setError('Failed to delete expense');
@@ -189,6 +190,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!currentUser) return;
     try {
       await incomeService.deleteIncome(id);
+      setIncomes(prev => prev.filter(income => income.id !== id));
       await refreshData();
     } catch (err) {
       setError('Failed to delete income');

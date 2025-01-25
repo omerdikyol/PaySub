@@ -13,6 +13,7 @@ export interface IIncome extends Document {
     endDate?: Date;
     intervalUnit?: 'day' | 'month';
   };
+  isActive: boolean;
 }
 
 const IncomeSchema: Schema = new Schema({
@@ -53,6 +54,10 @@ const IncomeSchema: Schema = new Schema({
       type: String,
       enum: ['day', 'month'],
     },
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
   },
 }, {
   timestamps: true,
