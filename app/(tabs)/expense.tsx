@@ -173,44 +173,37 @@ export default function Expense() {
     }
   };
 
-  const handlePaymentToggle = async (occurrence: typeof monthOccurrences[0]) => {
-    const expenseDate = occurrence.date.split('T')[0];
-    // Check current payment status from paymentHistory
-    const paymentHistoryEntry = Object.entries(occurrence.originalExpense.paymentHistory || {})
-      .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
-    const currentIsPaid = paymentHistoryEntry?.[1]?.isPaid ?? false;
-    const newIsPaidStatus = !currentIsPaid;
+  const handlePaymentToggle = async (occurrence: ReturnType<typeof useFinanceCalculations>['monthOccurrences'][0]) => {
+    if (!occurrence?.originalExpense?.id) return;
     
     try {
-      // Check if there's an existing payment entry for this date
-      const existingPaymentDate = Object.keys(occurrence.originalExpense.paymentHistory || {})
-        .find(timestamp => timestamp.split('T')[0] === expenseDate);
-
-      // Use existing timestamp if available, otherwise create new one
-      const timestamp = existingPaymentDate || new Date().toISOString();
+      // Use the expense date as the payment history key
+      const expenseDate = occurrence.date;
+      const paymentHistory = occurrence.originalExpense.paymentHistory || {};
       
+      // Find if there's an existing payment entry for this date
+      const existingPaymentDate = Object.keys(paymentHistory)
+        .find(timestamp => timestamp.split('T')[0] === expenseDate.split('T')[0]);
+
+      // Use the expense date for both the payment entry and paid date
+      const timestamp = expenseDate;
+      
+      // Check current payment status
+      const currentIsPaid = existingPaymentDate 
+        ? paymentHistory[existingPaymentDate]?.isPaid 
+        : false;
+      const newIsPaidStatus = !currentIsPaid;
+
       await updateExpensePaymentStatus(
         occurrence.originalExpense.id,
         timestamp,
         newIsPaidStatus
       );
 
-      // Update the local state immediately for better UI responsiveness
-      const updatedOccurrences = sortedOccurrences.map(occ => {
-        if (occ.id === occurrence.id) {
-          return {
-            ...occ,
-            paymentStatus: {
-              isPaid: newIsPaidStatus,
-              paidDate: newIsPaidStatus ? timestamp : undefined
-            }
-          };
-        }
-        return occ;
-      });
-
-      // Switch to the appropriate tab
-      setActiveTab(newIsPaidStatus ? 'paid' : 'unpaid');
+      // Switch to the appropriate tab after a short delay to ensure the state is updated
+      setTimeout(() => {
+        setActiveTab(newIsPaidStatus ? 'paid' : 'unpaid');
+      }, 100);
     } catch (error) {
       console.error('Failed to update payment status:', error);
     }
