@@ -106,7 +106,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateExpensePaymentStatus = async (id: string, date: string, isPaid: boolean) => {
     if (!currentUser) return;
     try {
-      // First update the local state immediately for UI responsiveness
+      await expenseService.updateExpensePaymentStatus(id, date, isPaid);
+      
+      // Update the local state immediately
       setExpenses(prevExpenses => 
         prevExpenses.map(expense => {
           if (expense.id === id) {
@@ -124,34 +126,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           return expense;
         })
       );
-
-      // Then update the server
-      await expenseService.updateExpensePaymentStatus(id, date, isPaid);
-      
-      // Wait a bit before refreshing to ensure server consistency
-      setTimeout(async () => {
-        await refreshData();
-      }, 500);
     } catch (err) {
-      // If there's an error, revert the local state
-      setExpenses(prevExpenses => 
-        prevExpenses.map(expense => {
-          if (expense.id === id) {
-            return {
-              ...expense,
-              paymentHistory: {
-                ...expense.paymentHistory,
-                [date]: {
-                  isPaid: !isPaid,
-                  paidDate: !isPaid ? new Date().toISOString() : null
-                }
-              }
-            };
-          }
-          return expense;
-        })
-      );
-      setError('Failed to update expense payment status');
+      setError('Failed to update payment status');
       throw err;
     }
   };

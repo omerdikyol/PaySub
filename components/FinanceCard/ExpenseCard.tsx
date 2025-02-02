@@ -123,32 +123,6 @@ export const ExpenseCard = ({
     );
   };
 
-  const renderLeftActions = (
-    progress: Animated.AnimatedInterpolation<number>,
-    dragX: Animated.AnimatedInterpolation<number>
-  ) => {
-    // Check payment status from the original expense's paymentHistory
-    const expenseDate = item.date.split('T')[0];
-    const paymentHistoryEntry = Object.entries(item.originalExpense.paymentHistory || {})
-      .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
-    const isPaid = paymentHistoryEntry?.[1]?.isPaid ?? false;
-
-    return (
-      <View 
-        style={[
-          styles.leftActionsContainer,
-          { backgroundColor: isPaid ? '#FF3B30' : '#34C759' }
-        ]}
-      >
-        <FontAwesome 
-          name={isPaid ? "times" : "check"} 
-          size={24} 
-          color="#fff" 
-        />
-      </View>
-    );
-  };
-
   const handlePaymentButtonClick = (e: GestureResponderEvent) => {
     e.stopPropagation();
     // Check payment status from the original expense's paymentHistory
@@ -237,7 +211,6 @@ export const ExpenseCard = ({
     <Swipeable
       ref={swipeableRef}
       renderRightActions={renderRightActions}
-      renderLeftActions={renderLeftActions}
       onSwipeableWillOpen={handleSwipeableWillOpen}
       rightThreshold={40}
       leftThreshold={40}

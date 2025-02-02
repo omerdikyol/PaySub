@@ -25,6 +25,7 @@ import { DeleteConfirmationModal } from '@/components/Modals/DeleteConfirmationM
 import { AddExpenseModal } from '@/components/Modals/AddExpenseModal';
 import { FontAwesome } from '@expo/vector-icons';
 import { useLanguage } from '@/context/LanguageContext';
+import { checkPaymentStatus } from '@/utils/paymentStatus';
 
 interface GroupedExpenses {
   id: string;
@@ -74,11 +75,6 @@ export default function Expense() {
     isGrouped
   );
 
-  // Reset to outstanding tab when month changes
-  useEffect(() => {
-    setActiveTab('unpaid');
-  }, [currentDate]);
-
   const {
     isModalVisible,
     editingItem: editingExpense,
@@ -102,14 +98,11 @@ export default function Expense() {
     let paidTotal = 0;
     
     expenses.forEach(expense => {
+      if (!expense?.originalExpense) return;
+
       const color = expense.originalExpense.color || '#888888';
-      // Find the payment status by matching just the date part (YYYY-MM-DD)
-      const expenseDate = expense.date.split('T')[0];
-      const paymentDate = Object.keys(expense.originalExpense.paymentHistory || {})
-        .find(timestamp => timestamp.split('T')[0] === expenseDate);
-      const paymentStatus = paymentDate ? expense.originalExpense.paymentHistory?.[paymentDate] : undefined;
-      const isPaid = paymentStatus?.isPaid ?? false;
-      const targetGroups = isPaid ? paidGroups : unpaidGroups;
+      const paymentStatus = checkPaymentStatus(expense, expense.date);
+      const targetGroups = paymentStatus.isPaid ? paidGroups : unpaidGroups;
       
       if (!targetGroups[color]) {
         targetGroups[color] = {
@@ -120,16 +113,14 @@ export default function Expense() {
           items: []
         };
       }
+
       targetGroups[color].items.push({
         ...expense,
-        paymentStatus: {
-          isPaid,
-          paidDate: paymentStatus?.paidDate
-        }
+        paymentStatus
       });
       targetGroups[color].total += expense.convertedAmount;
       
-      if (isPaid) {
+      if (paymentStatus.isPaid) {
         paidTotal += expense.convertedAmount;
       } else {
         unpaidTotal += expense.convertedAmount;
@@ -154,20 +145,18 @@ export default function Expense() {
     unpaid: { 
       title: 'Unpaid Expenses', 
       data: sortedOccurrences.filter(e => {
-        const expenseDate = e.date.split('T')[0];
-        const paymentDate = Object.keys(e.originalExpense.paymentHistory || {})
-          .find(timestamp => timestamp.split('T')[0] === expenseDate);
-        return !paymentDate || !e.originalExpense.paymentHistory?.[paymentDate]?.isPaid;
+        if (!e?.originalExpense) return false;
+        const status = checkPaymentStatus(e, e.date);
+        return !status.isPaid;
       }), 
       total: 0 
     },
     paid: { 
       title: 'Paid Expenses', 
       data: sortedOccurrences.filter(e => {
-        const expenseDate = e.date.split('T')[0];
-        const paymentDate = Object.keys(e.originalExpense.paymentHistory || {})
-          .find(timestamp => timestamp.split('T')[0] === expenseDate);
-        return paymentDate && e.originalExpense.paymentHistory?.[paymentDate]?.isPaid;
+        if (!e?.originalExpense) return false;
+        const status = checkPaymentStatus(e, e.date);
+        return status.isPaid;
       }), 
       total: 0 
     }
@@ -177,35 +166,20 @@ export default function Expense() {
     if (!occurrence?.originalExpense?.id) return;
     
     try {
-      // Use the expense date as the payment history key
-      const expenseDate = occurrence.date;
-      const paymentHistory = occurrence.originalExpense.paymentHistory || {};
+      const expenseDate = new Date(occurrence.date).toISOString();   
+      const currentPaymentStatus = checkPaymentStatus(occurrence, occurrence.date);
+      const newIsPaid = !currentPaymentStatus.isPaid;
       
-      // Find if there's an existing payment entry for this date
-      const existingPaymentDate = Object.keys(paymentHistory)
-        .find(timestamp => timestamp.split('T')[0] === expenseDate.split('T')[0]);
-
-      // Use the expense date for both the payment entry and paid date
-      const timestamp = expenseDate;
-      
-      // Check current payment status
-      const currentIsPaid = existingPaymentDate 
-        ? paymentHistory[existingPaymentDate]?.isPaid 
-        : false;
-      const newIsPaidStatus = !currentIsPaid;
-
       await updateExpensePaymentStatus(
         occurrence.originalExpense.id,
-        timestamp,
-        newIsPaidStatus
+        expenseDate,
+        newIsPaid
       );
 
-      // Switch to the appropriate tab after a short delay to ensure the state is updated
-      setTimeout(() => {
-        setActiveTab(newIsPaidStatus ? 'paid' : 'unpaid');
-      }, 100);
+      // Update the active tab to reflect the new payment status
+      setActiveTab(newIsPaid ? 'paid' : 'unpaid');
     } catch (error) {
-      console.error('Failed to update payment status:', error);
+      console.error('Error toggling payment status:', error);
     }
   };
 
@@ -273,7 +247,6 @@ export default function Expense() {
 
   // Modify the card press handler to set related payments
   const handleCardPress = (occurrence: typeof monthOccurrences[0]) => {
-    console.log('Card pressed with date:', occurrence.date);
     setSelectedOccurrence(occurrence);
     setRelatedPayments(getRelatedPayments(occurrence));
     setShowPaymentHistory(true);
@@ -348,7 +321,6 @@ export default function Expense() {
             item={expense}
             onPress={handleCardPress}
             onEdit={(item) => {
-              console.log('Opening edit modal with item:', item);
               setEditingExpense(item.originalExpense);
               setSelectedOccurrence(item);
               setIsModalVisible(true);
@@ -516,7 +488,6 @@ export default function Expense() {
                   item={expense}
                   onPress={handleCardPress}
                   onEdit={(item) => {
-                    console.log('Opening edit modal with item:', item);
                     setEditingExpense(item.originalExpense);
                     setSelectedOccurrence(item);
                     setIsModalVisible(true);
@@ -557,8 +528,6 @@ export default function Expense() {
         onClose={() => setShowMenu(false)}
         onEdit={() => {
           if (selectedExpense) {
-            console.log('Opening edit modal with selected occurrence date:', selectedOccurrence?.date);
-            console.log('Selected expense:', selectedExpense);
             setEditingExpense(selectedExpense);
             setIsModalVisible(true);
           }
