@@ -1,6 +1,11 @@
-import { ExpenseItem, Occurrence as ExpenseOccurrence } from '@/app/types/expense';
+import { ExpenseItem, Occurrence as ExpenseOccurrence, PaymentHistoryItem } from '@/app/types/expense';
 
-export function getExpenseOccurrencesInRange(expense: ExpenseItem, startDate: Date, endDate: Date): ExpenseOccurrence[] {
+export function getExpenseOccurrencesInRange(
+  expense: ExpenseItem,
+  startDate: Date,
+  endDate: Date,
+  paymentHistories?: PaymentHistoryItem[]
+): ExpenseOccurrence[] {
   const occurrences: ExpenseOccurrence[] = [];
   const start = new Date(expense.startDate);
   const recurrenceEnd = expense.recurrence.endDate ? new Date(expense.recurrence.endDate) : null;
@@ -40,6 +45,17 @@ export function getExpenseOccurrencesInRange(expense: ExpenseItem, startDate: Da
     return nextDate;
   };
 
+  const getHistoricalAmount = (date: Date): number | undefined => {
+    if (!paymentHistories?.length) return undefined;
+
+    // Find the most recent payment history entry before or on this date
+    const relevantHistory = paymentHistories
+      .filter(ph => ph.effectiveDate <= date)
+      .sort((a, b) => b.effectiveDate.getTime() - a.effectiveDate.getTime())[0];
+
+    return relevantHistory?.previousAmount;
+  };
+
   const addOccurrence = (date: Date) => {
     if (date >= startDate && date <= endDate && (!recurrenceEnd || date <= recurrenceEnd)) {
       const dateStr = date.toISOString();
@@ -48,10 +64,58 @@ export function getExpenseOccurrencesInRange(expense: ExpenseItem, startDate: Da
         .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
       const paymentStatus = paymentHistoryEntry?.[1] || { isPaid: false };
 
+      // Get the applicable amount based on price history
+      let applicableAmount = expense.amount;
+      let historicalAmount = undefined;
+
+      if (expense.priceHistory?.length) {
+        // Sort price history by effectiveDate in ascending order (oldest first)
+        const sortedPriceHistory = [...expense.priceHistory]
+          .sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime());
+
+        // Find the price that was in effect at this occurrence's date
+        const occurrenceTime = date.getTime();
+        let effectivePrice = null;
+
+        for (let i = 0; i < sortedPriceHistory.length; i++) {
+          const entry = sortedPriceHistory[i];
+          const entryTime = new Date(entry.effectiveDate).getTime();
+
+          if (entryTime <= occurrenceTime) {
+            // This price change was before or at our occurrence
+            effectivePrice = entry;
+          } else {
+            // This price change is after our occurrence
+            break;
+          }
+        }
+
+        if (effectivePrice) {
+          // Use the price that was in effect at this date
+          applicableAmount = effectivePrice.newAmount;
+          historicalAmount = effectivePrice.previousAmount;
+        } else {
+          // If no price change was in effect yet, use the first entry's previous amount
+          applicableAmount = sortedPriceHistory[0].previousAmount;
+        }
+      }
+
+      // Get relevant payment histories for this occurrence
+      const relevantPaymentHistories = paymentHistories?.filter(ph => {
+        const phDate = new Date(ph.effectiveDate);
+        return phDate <= date;
+      }).sort((a, b) => b.effectiveDate.getTime() - a.effectiveDate.getTime());
+
       occurrences.push({
+        id: `${expense.id}-${dateStr}`,
         date: dateStr,
-        amount: expense.amount,
+        amount: applicableAmount,
+        historicalAmount,
+        currency: expense.currency,
+        name: expense.name,
+        color: expense.color,
         paymentStatus,
+        paymentHistory: relevantPaymentHistories,
         originalExpense: expense
       });
     }

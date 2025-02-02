@@ -219,23 +219,65 @@ export default function Expense() {
     const endDate = new Date(today);
     endDate.setMonth(endDate.getMonth() + 6);
 
-    return getOccurrencesInRange(expense, startDate, endDate)
-        .map(occ => ({
-            ...occ,
-            id: `${expense.id}-${occ.date}`,
-            name: expense.name,
-            color: expense.color,
-            originalExpense: expense
-        }))
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-};
+    // Get all occurrences in the range
+    const occurrences = getOccurrencesInRange(expense, startDate, endDate);
+
+    // Map each occurrence to include the correct amount based on price history
+    return occurrences.map(occ => {
+      let applicableAmount = expense.amount;
+      let historicalAmount = undefined;
+
+      if (expense.priceHistory?.length) {
+        // Sort price history by effectiveDate in ascending order (oldest first)
+        const sortedPriceHistory = [...expense.priceHistory]
+          .sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime());
+
+        // Find the price that was in effect at this occurrence's date
+        const occurrenceTime = new Date(occ.date).getTime();
+        let effectivePrice = null;
+
+        for (let i = 0; i < sortedPriceHistory.length; i++) {
+          const entry = sortedPriceHistory[i];
+          const entryTime = new Date(entry.effectiveDate).getTime();
+
+          if (entryTime <= occurrenceTime) {
+            // This price change was before or at our occurrence
+            effectivePrice = entry;
+          } else {
+            // This price change is after our occurrence
+            break;
+          }
+        }
+
+        if (effectivePrice) {
+          // Use the price that was in effect at this date
+          applicableAmount = effectivePrice.newAmount;
+          historicalAmount = effectivePrice.previousAmount;
+        } else {
+          // If no price change was in effect yet, use the first entry's previous amount
+          applicableAmount = sortedPriceHistory[0].previousAmount;
+        }
+      }
+
+      return {
+        ...occ,
+        id: `${expense.id}-${occ.date}`,
+        name: expense.name,
+        color: expense.color,
+        amount: applicableAmount,
+        historicalAmount,
+        originalExpense: expense
+      };
+    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  };
 
   // Modify the card press handler to set related payments
   const handleCardPress = (occurrence: typeof monthOccurrences[0]) => {
+    console.log('Card pressed with date:', occurrence.date);
     setSelectedOccurrence(occurrence);
     setRelatedPayments(getRelatedPayments(occurrence));
     setShowPaymentHistory(true);
-};
+  };
 
   const renderListHeader = () => {
     return (
@@ -305,8 +347,10 @@ export default function Expense() {
             key={expense.id}
             item={expense}
             onPress={handleCardPress}
-            onEdit={(expense) => {
-              setEditingExpense(expense.originalExpense);
+            onEdit={(item) => {
+              console.log('Opening edit modal with item:', item);
+              setEditingExpense(item.originalExpense);
+              setSelectedOccurrence(item);
               setIsModalVisible(true);
             }}
             onDelete={(expense) => {
@@ -472,7 +516,9 @@ export default function Expense() {
                   item={expense}
                   onPress={handleCardPress}
                   onEdit={(item) => {
+                    console.log('Opening edit modal with item:', item);
                     setEditingExpense(item.originalExpense);
+                    setSelectedOccurrence(item);
                     setIsModalVisible(true);
                   }}
                   onDelete={(item) => {
@@ -503,6 +549,7 @@ export default function Expense() {
         onClose={handleCloseModal}
         onSave={handleSaveExpense}
         initialExpense={editingExpense}
+        selectedDate={selectedOccurrence?.date}
       />
 
       <MenuModal
@@ -510,6 +557,8 @@ export default function Expense() {
         onClose={() => setShowMenu(false)}
         onEdit={() => {
           if (selectedExpense) {
+            console.log('Opening edit modal with selected occurrence date:', selectedOccurrence?.date);
+            console.log('Selected expense:', selectedExpense);
             setEditingExpense(selectedExpense);
             setIsModalVisible(true);
           }

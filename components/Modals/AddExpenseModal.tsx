@@ -50,13 +50,15 @@ interface AddExpenseModalProps {
   onClose: () => void;
   onSave: (expense: Omit<ExpenseItem, 'id'>) => void;
   initialExpense?: ExpenseItem | null;
+  selectedDate?: string;
 }
 
 export function AddExpenseModal({
   visible,
   onClose,
   onSave,
-  initialExpense
+  initialExpense,
+  selectedDate
 }: AddExpenseModalProps) {
   const { colors } = useTheme();
   const { notificationsEnabled } = useNotifications();
@@ -96,6 +98,15 @@ export function AddExpenseModal({
     }
   });
 
+  // Add logging for selectedDate changes
+  useEffect(() => {
+    if (visible) {
+      console.log('Modal opened with:');
+      console.log('- selectedDate:', selectedDate);
+      console.log('- initialExpense:', initialExpense);
+    }
+  }, [visible, selectedDate, initialExpense]);
+
   // Update notification settings when global setting changes
   useEffect(() => {
     setNotificationSettings(prev => ({
@@ -107,12 +118,21 @@ export function AddExpenseModal({
   // Populate initial values if editing
   useEffect(() => {
     if (initialExpense && visible) {
+      console.log('AddExpenseModal - Populating initial values:');
+      console.log('- initialExpense:', initialExpense);
+      console.log('- selectedDate:', selectedDate);
+      console.log('- startDate to be set:', new Date(initialExpense.startDate));
+
       // Format the amount correctly preserving all digits
       setAmount(initialExpense.amount.toFixed(2).replace('.', ','));
       setCurrency(initialExpense.currency);
       setName(initialExpense.name);
 
-      setStartDate(new Date(initialExpense.startDate));
+      // If we have a selectedDate from a specific occurrence, use that
+      // Otherwise fall back to the expense's start date
+      const dateToUse = selectedDate ? new Date(selectedDate) : new Date(initialExpense.startDate);
+      console.log('- final date being used:', dateToUse);
+      setStartDate(dateToUse);
       setSelectedColor(initialExpense.color);
       setRecurrenceType(initialExpense.recurrence.type);
 
@@ -183,13 +203,17 @@ export function AddExpenseModal({
       return;
     }
 
+    console.log('Saving expense with:');
+    console.log('- selectedDate:', selectedDate);
+    console.log('- amount:', numericAmount);
+
     // Construct new/updated expense
     const expenseData = {
       amount: numericAmount,
       currency,
       name,
-      date: startDate,
-      startDate: startDate.toISOString(),
+      date: selectedDate ? new Date(selectedDate) : startDate,
+      startDate: initialExpense ? initialExpense.startDate : startDate.toISOString(),
       color: selectedColor,
       recurrence: {
         type: recurrenceType,
@@ -209,8 +233,11 @@ export function AddExpenseModal({
           time: notificationSettings.time
         })
       },
-      paymentHistory: initialExpense?.paymentHistory || {}
+      paymentHistory: initialExpense?.paymentHistory || {},
+      selectedOccurrenceDate: selectedDate
     };
+
+    console.log('Final expenseData:', expenseData);
 
     // Schedule notification if enabled
     if (notificationSettings.enabled) {

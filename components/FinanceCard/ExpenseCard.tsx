@@ -39,10 +39,16 @@ export interface ExpenseItem extends BaseFinanceItem {
   };
   date: string;
   amount: number;
+  historicalAmount?: number;
   paymentStatus?: {
     isPaid: boolean;
     paidDate?: string;
   };
+  paymentHistory?: Array<{
+    previousAmount: number;
+    newAmount: number;
+    effectiveDate: Date;
+  }>;
 }
 
 type ExpenseCardProps = {
@@ -89,7 +95,10 @@ export const ExpenseCard = ({
     }
   };
 
-  const renderRightActions = (progress: Animated.AnimatedInterpolation, dragX: Animated.AnimatedInterpolation) => {
+  const renderRightActions = (
+    progress: Animated.AnimatedInterpolation<number>,
+    dragX: Animated.AnimatedInterpolation<number>
+  ) => {
     return (
       <View style={styles.rightActionsContainer}>
         <TouchableOpacity
@@ -114,7 +123,10 @@ export const ExpenseCard = ({
     );
   };
 
-  const renderLeftActions = (progress: Animated.AnimatedInterpolation, dragX: Animated.AnimatedInterpolation) => {
+  const renderLeftActions = (
+    progress: Animated.AnimatedInterpolation<number>,
+    dragX: Animated.AnimatedInterpolation<number>
+  ) => {
     // Check payment status from the original expense's paymentHistory
     const expenseDate = item.date.split('T')[0];
     const paymentHistoryEntry = Object.entries(item.originalExpense.paymentHistory || {})
@@ -175,6 +187,11 @@ export const ExpenseCard = ({
           ]}>
             {formatCurrency(item.amount, item.originalExpense.currency)}
           </ThemedText>
+          {/* {item.historicalAmount !== undefined && item.historicalAmount !== item.amount && (
+            <ThemedText style={styles.historicalAmountText}>
+              {formatCurrency(item.historicalAmount, item.originalExpense.currency)}
+            </ThemedText>
+          )} */}
           {isOverdue && !isPaid && (
             <View style={styles.overdueBadge}>
               <FontAwesome name="exclamation" size={10} color="#fff" />
@@ -246,18 +263,59 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  historicalAmountText: {
+    fontSize: 12,
+    color: '#888',
+    textDecorationLine: 'line-through',
+    marginTop: 2,
+  },
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'flex-end',
+    marginTop: 4,
   },
-  paidBadge: {
+  rightActionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  actionButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 60,
+    height: '100%',
+  },
+  leftActionsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingLeft: 20,
+  },
+  amountContainer: {
+    alignItems: 'flex-end',
+  },
+  overdueBadge: {
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  paidRightColumn: {
+    opacity: 0.7,
+  },
+  paidAmountText: {
+    textDecorationLine: 'line-through',
+  },
+  paidBadge: {
     backgroundColor: '#34C759',
+    borderRadius: 15,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
   },
   paidText: {
@@ -266,72 +324,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   payButton: {
+    borderRadius: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    gap: 6,
   },
   payButtonIcon: {
-    opacity: 0.6,
+    marginRight: 4,
   },
   payButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  rightActionsContainer: {
-    flexDirection: 'row',
-    width: 140,
-    height: 80,
-    marginVertical: 6,
-    marginHorizontal: 2,
-    borderRadius: 16,
-    overflow: 'hidden',
-    opacity: 0.9,
-  },
-  actionButton: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  leftActionsContainer: {
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 6,
-    marginHorizontal: 2,
-    borderRadius: 16,
-    opacity: 0.9,
-  },
-  overdueText: {
     fontSize: 12,
-    color: '#FF3B30',
     fontWeight: '600',
-    marginTop: 2,
   },
   overduePayButton: {
     backgroundColor: '#FF3B30',
-  },
-  amountContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  overdueBadge: {
-    backgroundColor: '#FF3B30',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  paidRightColumn: {
-    opacity: 0.6,
-  },
-  paidAmountText: {
-    textDecorationLine: 'line-through',
-    opacity: 0.7,
   },
 });
