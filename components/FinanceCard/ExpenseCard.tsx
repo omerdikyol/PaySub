@@ -147,19 +147,7 @@ export const ExpenseCard = ({
     const expenseDate = item.date.split('T')[0];
     const paymentHistoryEntry = Object.entries(item.originalExpense.paymentHistory || {})
       .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
-    
-    // Extract the nested value if present
-    const paymentHistoryData = paymentHistoryEntry?.[1];
-    const actualPaymentData =
-      paymentHistoryData && typeof paymentHistoryData === 'object'
-        ? Object.values(paymentHistoryData)[0]
-        : {};
-    const isPaid = actualPaymentData?.isPaid ?? false;
-    
-    console.log('paymentHistoryEntry', paymentHistoryEntry);
-    console.log('paymentHistoryData', paymentHistoryData);
-    console.log('actualPaymentData', actualPaymentData);
-    console.log('isPaid', isPaid);
+    const isPaid = paymentHistoryEntry?.[1]?.isPaid ?? false;
 
     return (
       <View style={[
