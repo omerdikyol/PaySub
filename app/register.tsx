@@ -17,6 +17,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { getAuthErrorMessage } from '../utils/authErrors';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +40,23 @@ export default function RegisterScreen() {
     try {
       setError('');
 
+      // Basic validation
+      if (!name.trim()) {
+        setError('Please enter your name');
+        return;
+      }
+      if (!email.trim()) {
+        setError('Please enter your email');
+        return;
+      }
+      if (!password.trim()) {
+        setError('Please enter a password');
+        return;
+      }
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters');
+        return;
+      }
       if (password !== confirmPassword) {
         setError('Passwords do not match');
         return;
@@ -48,7 +66,7 @@ export default function RegisterScreen() {
       await signup(email, password);
       router.replace('/(tabs)');
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(getAuthErrorMessage(err));
       setIsLoading(false);
     }
   };

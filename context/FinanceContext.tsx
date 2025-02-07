@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { expenseService, Expense } from '../services/firebase/expense.service';
 import { incomeService, Income } from '../services/firebase/income.service';
+import { useNotifications } from './NotificationContext';
+import { NotificationService } from '@/services/NotificationService';
 
 interface FinanceContextType {
   expenses: Expense[];
@@ -30,6 +32,7 @@ export const useFinance = () => {
 
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
+  const { notificationsEnabled, scheduleDailyNotifications } = useNotifications();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,8 +48,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         expenseService.getExpenses(currentUser.uid, startDate, endDate),
         incomeService.getIncomes(currentUser.uid, startDate, endDate)
       ]);
-      setExpenses(fetchedExpenses.filter(expense => expense.isActive));
+      const activeExpenses = fetchedExpenses.filter(expense => expense.isActive);
+      setExpenses(activeExpenses);
       setIncomes(fetchedIncomes.filter(income => income.isActive));
+
+      // Reschedule daily notifications if enabled
+      if (notificationsEnabled) {
+        await scheduleDailyNotifications(activeExpenses);
+      }
     } catch (err) {
       setError('Failed to fetch financial data');
       console.error('Error fetching financial data:', err);
@@ -109,23 +118,28 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       await expenseService.updateExpensePaymentStatus(id, date, isPaid);
       
       // Update the local state immediately
-      setExpenses(prevExpenses => 
-        prevExpenses.map(expense => {
-          if (expense.id === id) {
-            return {
-              ...expense,
-              paymentHistory: {
-                ...expense.paymentHistory,
-                [date]: {
-                  isPaid,
-                  paidDate: isPaid ? new Date().toISOString() : null
-                }
+      const updatedExpenses = expenses.map(expense => {
+        if (expense.id === id) {
+          return {
+            ...expense,
+            paymentHistory: {
+              ...expense.paymentHistory,
+              [date]: {
+                isPaid,
+                paidDate: isPaid ? new Date().toISOString() : null
               }
-            };
-          }
-          return expense;
-        })
-      );
+            }
+          };
+        }
+        return expense;
+      });
+      
+      setExpenses(updatedExpenses);
+
+      // Reschedule daily notifications if enabled
+      if (notificationsEnabled) {
+        await scheduleDailyNotifications(updatedExpenses);
+      }
     } catch (err) {
       setError('Failed to update payment status');
       throw err;

@@ -16,6 +16,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { getAuthErrorMessage } from '../utils/authErrors';
 
 const { width } = Dimensions.get('window');
 
@@ -34,11 +35,22 @@ export default function LoginScreen() {
     
     try {
       setError('');
+      
+      // Basic validation
+      if (!email.trim()) {
+        setError('Please enter your email');
+        return;
+      }
+      if (!password.trim()) {
+        setError('Please enter your password');
+        return;
+      }
+      
       setIsLoading(true);
       await login(email, password);
       router.replace('/(tabs)');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(getAuthErrorMessage(err));
       setIsLoading(false);
     }
   };
