@@ -82,6 +82,23 @@ export const translations = {
     notificationUpdateError: 'Failed to update notification settings. Please try again.',
     signInToContinue: 'Sign in to sync your data across devices',
 
+    // Premium
+    premium_features: 'Premium Features',
+    premium_required: 'Premium Required',
+    expense_limit_reached: 'You have reached the maximum number of expenses (5) for free users. Upgrade to Premium for unlimited expenses!',
+    income_limit_reached: 'You have reached the maximum number of incomes (3) for free users. Upgrade to Premium for unlimited incomes!',
+    premium_active_until: 'Premium active until {{date}}',
+    upgrade: 'Upgrade to Premium',
+    restore_purchases: 'Restore Purchases',
+    free_plan: 'Free Plan',
+    premium_plan: 'Premium Plan',
+    max_incomes: 'Up to {{count}} incomes',
+    max_expenses: 'Up to {{count}} expenses',
+    unlimited_incomes: 'Unlimited incomes',
+    unlimited_expenses: 'Unlimited expenses',
+    advanced_analytics: 'Advanced analytics and insights',
+    premium_support: 'Priority support',
+
     // Add Expense Modal
     addNewExpense: 'Add New Expense',
     editExpense: 'Edit Expense',
@@ -352,6 +369,23 @@ export const translations = {
     openSettings: 'Ayarları Aç',
     notificationUpdateError: 'Bildirim ayarları güncellenirken hata oluştu. Lütfen tekrar deneyin.',
     signInToContinue: 'Verilerinizi cihazlar arasında eşitlemek için lütfen giriş yapınız',
+
+    // Premium
+    premium_features: 'Premium Özellikler',
+    premium_required: 'Premium Gerekli',
+    expense_limit_reached: 'Ücretsiz kullanıcılar için maksimum gider sayısına (5) ulaştınız. Sınırsız gider için Premium\'a yükseltin!',
+    income_limit_reached: 'Ücretsiz kullanıcılar için maksimum gelir sayısına (3) ulaştınız. Sınırsız gelir için Premium\'a yükseltin!',
+    premium_active_until: 'Premium {{date}} tarihine kadar aktif',
+    upgrade: 'Premium\'a Yükselt',
+    restore_purchases: 'Satın Almaları Geri Yükle',
+    free_plan: 'Ücretsiz Plan',
+    premium_plan: 'Premium Plan',
+    max_incomes: '{{count}} gelire kadar',
+    max_expenses: '{{count}} gidere kadar',
+    unlimited_incomes: 'Sınırsız gelir',
+    unlimited_expenses: 'Sınırsız gider',
+    advanced_analytics: 'Gelişmiş analiz ve içgörüler',
+    premium_support: 'Öncelikli destek',
 
     // Add Expense Modal
     addNewExpense: 'Yeni Gider Ekle',

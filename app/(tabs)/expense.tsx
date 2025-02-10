@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { ThemedText } from '@/components/Themed';
@@ -26,6 +27,8 @@ import { AddExpenseModal } from '@/components/Modals/AddExpenseModal';
 import { FontAwesome } from '@expo/vector-icons';
 import { useLanguage } from '@/context/LanguageContext';
 import { checkPaymentStatus } from '@/utils/paymentStatus';
+import { usePremium } from '@/context/PremiumContext';
+import { useRouter } from 'expo-router';
 
 interface GroupedExpenses {
   id: string;
@@ -44,7 +47,9 @@ interface SectionData {
 export default function Expense() {
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const router = useRouter();
   const { expenses, updateExpensePaymentStatus } = useFinance();
+  const { checkLimits, premiumStatus } = usePremium();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -451,6 +456,28 @@ export default function Expense() {
     });
   }, [activeTab]);
 
+  const handleAddPress = () => {
+    if (!checkLimits('expense', expenses.length)) {
+      Alert.alert(
+        t('premium_required'),
+        t('expense_limit_reached'),
+        [
+          {
+            text: t('upgrade'),
+            onPress: () => router.push('/premium'),
+            style: 'default',
+          },
+          {
+            text: t('cancel'),
+            style: 'cancel',
+          },
+        ]
+      );
+      return;
+    }
+    setIsModalVisible(true);
+  };
+
   return (
     <ScreenLayout>
       <ExpenseHeader
@@ -511,7 +538,11 @@ export default function Expense() {
         contentContainerStyle={styles.listContainer}
       />
 
-      <FAB onPress={() => setIsModalVisible(true)} />
+      <FAB
+        icon="plus"
+        onPress={handleAddPress}
+        style={styles.fab}
+      />
 
       <AddExpenseModal
         visible={isModalVisible}

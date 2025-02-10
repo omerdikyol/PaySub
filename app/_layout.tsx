@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { PremiumProvider } from '@/context/PremiumContext';
 import {
   Inter_100Thin,
   Inter_200ExtraLight,
@@ -72,7 +73,9 @@ export default function RootLayout() {
           <NotificationProvider>
             <CurrencyProvider>
               <FinanceProvider>
-                <RootLayoutNav />
+                <PremiumProvider>
+                  <RootLayoutNav />
+                </PremiumProvider>
               </FinanceProvider>
             </CurrencyProvider>
           </NotificationProvider>

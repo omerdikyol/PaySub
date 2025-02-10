@@ -2,6 +2,7 @@ import {
   StyleSheet,
   FlatList,
   View,
+  Alert,
 } from 'react-native';
 import { useState } from 'react';
 import { ThemedText } from '@/components/Themed';
@@ -21,11 +22,15 @@ import { AddIncomeModal } from '@/components/Modals/AddIncomeModal';
 import { IncomePaymentHistoryModal } from '@/components/PaymentHistory/IncomePaymentHistoryModal';
 import { getOccurrencesInRange } from '@/utils/occurrences';
 import { useLanguage } from '@/context/LanguageContext';
+import { usePremium } from '@/context/PremiumContext';
+import { useRouter } from 'expo-router';
 
 export default function Income() {
   const { colors } = useTheme();
   const { t } = useLanguage();
-  const { incomes } = useFinance();
+  const router = useRouter();
+  const { incomes, updateIncomePaymentStatus } = useFinance();
+  const { checkLimits, premiumStatus } = usePremium();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,6 +107,28 @@ export default function Income() {
     setShowPaymentHistory(true);
   };
 
+  const handleAddPress = () => {
+    if (!checkLimits('income', incomes.length)) {
+      Alert.alert(
+        t('premium_required'),
+        t('income_limit_reached'),
+        [
+          {
+            text: t('upgrade'),
+            onPress: () => router.push('/premium'),
+            style: 'default',
+          },
+          {
+            text: t('cancel'),
+            style: 'cancel',
+          },
+        ]
+      );
+      return;
+    }
+    setIsModalVisible(true);
+  };
+
   return (
     <ScreenLayout>
       <IncomeHeader
@@ -143,7 +170,11 @@ export default function Income() {
         contentContainerStyle={styles.listContainer}
       />
 
-      <FAB onPress={() => setIsModalVisible(true)} />
+      <FAB
+        icon="plus"
+        onPress={handleAddPress}
+        style={styles.fab}
+      />
 
       <AddIncomeModal
         visible={isModalVisible}
@@ -212,5 +243,10 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     textAlign: 'right',
     marginTop: 4
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
   }
 });
