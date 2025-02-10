@@ -1,19 +1,17 @@
 export const checkPaymentStatus = (expense: any, targetDate: string) => {
   const paymentHistory = expense.originalExpense?.paymentHistory || {};
   
-  // Format target date to match Firebase timestamp format (without milliseconds)
-  const targetDateObj = new Date(targetDate);
-  const targetTimestamp = `${targetDateObj.toISOString().split('.')[0]}`;
+  // Format target date to match date part only
+  const targetDateStr = new Date(targetDate).toISOString().split('T')[0];
 
   // Check all payment entries
   for (const [timestamp, payment] of Object.entries(paymentHistory)) {
-    // Get the base timestamp without the milliseconds
-    const baseTimestamp = timestamp;
+    // Compare only the date part
+    const paymentDateStr = timestamp.split('T')[0];
     
-    // Check if this is the payment entry we're looking for
-    if (baseTimestamp === targetTimestamp) {
-      // Access the nested payment status
-      const paymentStatus = (payment as any)["025Z"];
+    if (paymentDateStr === targetDateStr) {
+      // Handle both nested and non-nested structures
+      const paymentStatus = (payment as any)["025Z"] || payment;
       
       if (paymentStatus?.isPaid) {
         return {
@@ -28,4 +26,4 @@ export const checkPaymentStatus = (expense: any, targetDate: string) => {
     isPaid: false,
     paidDate: null
   };
-}; 
+};

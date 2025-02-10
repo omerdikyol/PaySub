@@ -18,8 +18,9 @@ export default function TabOneScreen() {
   const router = useRouter();
   const { t } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { incomes, expenses } = useFinance();
+  const { incomes, expenses, isLoading: isDataLoading } = useFinance();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
   
   const {
     monthOccurrences,
@@ -56,16 +57,39 @@ export default function TabOneScreen() {
   const paymentCardAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    calculations.then(setMonthlyData);
-  }, [calculations]);
-
-  useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1000,
       useNativeDriver: true,
     }).start();
   }, []);
+
+  useEffect(() => {
+    // Start shimmer animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  useEffect(() => {
+    if (!isDataLoading) {
+      calculations.then(data => {
+        setMonthlyData(data);
+        animateAllCards();
+      });
+    }
+  }, [calculations, isDataLoading]);
 
   const calculatePaymentTotals = (occurrences: typeof monthOccurrences) => {
     let paidTotal = 0;
@@ -172,7 +196,7 @@ export default function TabOneScreen() {
             }]
           }}>
             <ThemedCard style={styles.mainCard}>
-              {isDataReady ? (
+              {!isDataLoading && isDataReady ? (
                 <>
                   <View style={styles.mainCardHeader}>
                     <View>
@@ -200,7 +224,18 @@ export default function TabOneScreen() {
                   />
                 </>
               ) : (
-                <View style={[styles.shimmer, styles.mainCardShimmer]} />
+                <View style={[styles.shimmer, styles.mainCardShimmer]}>
+                  <Animated.View style={{
+                    transform: [{
+                      translateX: shimmerAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-100, 100]
+                      })
+                    }]
+                  }}>
+                    <View style={[styles.shimmer, styles.mainCardShimmer]} />
+                  </Animated.View>
+                </View>
               )}
             </ThemedCard>
           </Animated.View>
@@ -221,7 +256,7 @@ export default function TabOneScreen() {
                 onPress={() => router.push('/(tabs)/income')}
               >
                 <ThemedCard style={[styles.card, styles.halfCard]}>
-                  {isDataReady ? (
+                  {!isDataLoading && isDataReady ? (
                     <>
                       <View style={[styles.iconCircle, { backgroundColor: colors.success + '20' }]}>
                         <Icon name="arrow-down" size={24} color={colors.success} />
@@ -232,7 +267,18 @@ export default function TabOneScreen() {
                       </ThemedText>
                     </>
                   ) : (
-                    <View style={[styles.shimmer, styles.halfCardShimmer]} />
+                    <View style={[styles.shimmer, styles.halfCardShimmer]}>
+                      <Animated.View style={{
+                        transform: [{
+                          translateX: shimmerAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [-100, 100]
+                          })
+                        }]
+                      }}>
+                        <View style={[styles.shimmer, styles.halfCardShimmer]} />
+                      </Animated.View>
+                    </View>
                   )}
                 </ThemedCard>
               </TouchableOpacity>
@@ -243,7 +289,7 @@ export default function TabOneScreen() {
                 onPress={() => router.push('/(tabs)/expense')}
               >
                 <ThemedCard style={[styles.card, styles.halfCard]}>
-                  {isDataReady ? (
+                  {!isDataLoading && isDataReady ? (
                     <>
                       <View style={[styles.iconCircle, { backgroundColor: colors.error + '20' }]}>
                         <Icon name="arrow-up" size={24} color={colors.error} />
@@ -254,7 +300,18 @@ export default function TabOneScreen() {
                       </ThemedText>
                     </>
                   ) : (
-                    <View style={[styles.shimmer, styles.halfCardShimmer]} />
+                    <View style={[styles.shimmer, styles.halfCardShimmer]}>
+                      <Animated.View style={{
+                        transform: [{
+                          translateX: shimmerAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [-100, 100]
+                          })
+                        }]
+                      }}>
+                        <View style={[styles.shimmer, styles.halfCardShimmer]} />
+                      </Animated.View>
+                    </View>
                   )}
                 </ThemedCard>
               </TouchableOpacity>
@@ -279,7 +336,7 @@ export default function TabOneScreen() {
                   <ThemedText style={styles.sectionTitle}>{t('paymentStatus')}</ThemedText>
                   <Icon name="chevron-right" size={24} color={colors.text} />
                 </View>
-                {isDataReady ? (
+                {!isDataLoading && isDataReady ? (
                   <Animated.View style={{
                     opacity: paymentCardAnim,
                     transform: [{
@@ -313,7 +370,18 @@ export default function TabOneScreen() {
                   </Animated.View>
                 ) : (
                   <View style={styles.debtSection}>
-                    <View style={[styles.shimmer, styles.loadingShimmer]} />
+                    <View style={[styles.shimmer, styles.loadingShimmer]}>
+                      <Animated.View style={{
+                        transform: [{
+                          translateX: shimmerAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [-100, 100]
+                          })
+                        }]
+                      }}>
+                        <View style={[styles.shimmer, styles.loadingShimmer]} />
+                      </Animated.View>
+                    </View>
                   </View>
                 )}
               </ThemedCard>
@@ -450,8 +518,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   shimmer: {
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: '#E0E0E0',
     borderRadius: 8,
+    overflow: 'hidden',
   },
   loadingShimmer: {
     height: 80,
@@ -462,7 +531,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   halfCardShimmer: {
-    height: 120,
+    height: 100,
     width: '100%',
   },
 });

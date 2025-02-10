@@ -56,8 +56,8 @@ export default function Expense() {
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [selectedOccurrence, setSelectedOccurrence] = useState<typeof monthOccurrences[0] | null>(null);
   const [relatedPayments, setRelatedPayments] = useState<typeof monthOccurrences>([]);
-  const [showPaidExpenses, setShowPaidExpenses] = useState(false);
   const [activeTab, setActiveTab] = useState<'unpaid' | 'paid'>('unpaid');
+  const tabIndicatorAnim = useRef(new Animated.Value(0)).current;
 
   const {
     monthOccurrences,
@@ -252,6 +252,22 @@ export default function Expense() {
     setShowPaymentHistory(true);
   };
 
+  const handleTabChange = (tab: 'unpaid' | 'paid') => {
+    Animated.spring(tabIndicatorAnim, {
+      toValue: tab === 'unpaid' ? 0 : 1,
+      useNativeDriver: true,
+      damping: 20,
+      stiffness: 300,
+    }).start();
+    setActiveTab(tab);
+  };
+
+  const handleMonthChange = (newDate: Date) => {
+    setCurrentDate(newDate);
+    // Reset to Outstanding tab with animation
+    handleTabChange('unpaid');
+  };
+
   const renderListHeader = () => {
     return (
       <View style={[styles.listHeader, { backgroundColor: colors.background }]}>
@@ -337,82 +353,64 @@ export default function Expense() {
   };
 
   const renderTabSelector = () => {
-    const screenWidth = Dimensions.get('window').width;
-    const containerPadding = 16;
-    const containerWidth = screenWidth - (containerPadding * 2);
-    const tabWidth = containerWidth / 2;
-    const translateX = useRef(new Animated.Value(0)).current;
-
-    // Use different colors for light and dark mode for tab indicator
-    const isDarkMode = colors.background === '#000000';
-    const highlightColor = isDarkMode 
-      ? '#FFFFFF20'  // White with 12% opacity for dark mode
-      : colors.primary + '15'; // Primary color with 15% opacity for light mode
-
-    useEffect(() => {
-      Animated.spring(translateX, {
-        toValue: activeTab === 'unpaid' ? 0 : tabWidth,
-        useNativeDriver: true,
-        damping: 20,
-        mass: 1,
-        stiffness: 300,
-      }).start();
-    }, [activeTab]);
+    const tabWidth = Dimensions.get('window').width / 2 - 40;
+    const unpaidCount = unpaid?.data?.length || 0;
+    const paidCount = paid?.data?.length || 0;
 
     return (
-      <View style={[styles.tabOuterContainer]}>
-        <View style={[styles.tabContainer, { backgroundColor: colors.card, width: containerWidth }]}>
-          <Animated.View style={[
-            styles.tabIndicator,
-            {
-              width: tabWidth,
-              transform: [{ translateX }],
-              backgroundColor: highlightColor,
-            }
-          ]} />
-          
-          <TouchableOpacity 
-            style={[styles.tab, { width: tabWidth }]}
-            onPress={() => setActiveTab('unpaid')}
-          >
-            <View style={styles.tabContent}>
-              <ThemedText style={[
-                styles.tabText,
-                activeTab === 'unpaid' && styles.activeTabText
-              ]}>
-                {t('outstanding')}
-              </ThemedText>
-              {unpaid.data.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: '#007AFF' }]}>
-                  <ThemedText style={styles.badgeText}>
-                    {unpaid.data.length}
-                  </ThemedText>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.tab, { width: tabWidth }]}
-            onPress={() => setActiveTab('paid')}
-          >
-            <View style={styles.tabContent}>
-              <ThemedText style={[
-                styles.tabText,
-                activeTab === 'paid' && styles.activeTabText
-              ]}>
-                {t('paid')}
-              </ThemedText>
-              {paid.data.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: '#007AFF' }]}>
-                  <ThemedText style={styles.badgeText}>
-                    {paid.data.length}
-                  </ThemedText>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-        </View>
+      <View style={[styles.tabContainer, { backgroundColor: colors.card }]}>
+        <Animated.View style={[
+          styles.tabIndicator,
+          {
+            transform: [{
+              translateX: tabIndicatorAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, tabWidth]
+              })
+            }],
+            backgroundColor: colors.primary + '20',
+          }
+        ]} />
+        <TouchableOpacity
+          style={styles.tab}
+          onPress={() => handleTabChange('unpaid')}
+        >
+          <View style={styles.tabContent}>
+            <ThemedText style={[
+              styles.tabText,
+              activeTab === 'unpaid' && [styles.activeTabText, { color: colors.primary }]
+            ]}>
+              {t('outstanding')}
+            </ThemedText>
+            {unpaidCount > 0 && (
+              <View style={[styles.badge, { backgroundColor: colors.primary + '15' }]}>
+                <ThemedText style={[styles.badgeText, { color: colors.primary }]}>
+                  {unpaidCount}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.tab}
+          onPress={() => handleTabChange('paid')}
+        >
+          <View style={styles.tabContent}>
+            <ThemedText style={[
+              styles.tabText,
+              activeTab === 'paid' && [styles.activeTabText, { color: colors.primary }]
+            ]}>
+              {t('paid')}
+            </ThemedText>
+            {paidCount > 0 && (
+              <View style={[styles.badge, { backgroundColor: colors.primary + '15' }]}>
+                <ThemedText style={[styles.badgeText, { color: colors.primary }]}>
+                  {paidCount}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -469,7 +467,7 @@ export default function Expense() {
         }}
         onGroupToggle={() => setIsGrouped(!isGrouped)}
         onSortPress={() => setShowSortMenu(true)}
-        onMonthChange={setCurrentDate}
+        onMonthChange={handleMonthChange}
       />
 
       <FlatList
@@ -624,51 +622,50 @@ const styles = StyleSheet.create({
   toggleButton: {
     padding: 8,
   },
-  tabOuterContainer: {
-    alignItems: 'center',
-    marginVertical: 2,
-  },
   tabContainer: {
     flexDirection: 'row',
-    borderRadius: 12,
     position: 'relative',
-    height: 48,
-    overflow: 'hidden',
+    margin: 10,
+    borderRadius: 12,
+    padding: 4,
+    height: 40,
   },
   tabIndicator: {
     position: 'absolute',
-    top: 0,
-    bottom: 0,
-    height: '100%',
+    top: 4,
+    left: 4,
+    bottom: 4,
+    width: '48%',
+    borderRadius: 8,
   },
   tab: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  tabContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    zIndex: 1,
   },
   tabText: {
     fontSize: 15,
     fontWeight: '500',
-    opacity: 0.7,
+    textAlign: 'center',
   },
   activeTabText: {
-    opacity: 1,
     fontWeight: '600',
   },
+  tabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   badge: {
-    minWidth: 20,
-    height: 20,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 10,
+    minWidth: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
   },
   badgeText: {
-    color: '#fff',
     fontSize: 12,
     fontWeight: '600',
   },

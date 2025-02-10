@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -70,6 +70,8 @@ export const ExpenseCard = ({
 }: ExpenseCardProps) => {
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
   
   // Transform the ExpenseItem into BaseFinanceItem
   const baseItem: BaseFinanceItem = {
@@ -81,7 +83,7 @@ export const ExpenseCard = ({
     service: item.originalExpense.service,
     recurrence: item.originalExpense.recurrence,
     color: item.originalExpense.color,
-    opacity: item.paymentStatus?.isPaid ? 0.5 : 1
+    opacity: fadeAnim
   };
 
   const handleSwipeLeft = () => {
@@ -125,15 +127,42 @@ export const ExpenseCard = ({
 
   const handlePaymentButtonClick = (e: GestureResponderEvent) => {
     e.stopPropagation();
-    // Check payment status from the original expense's paymentHistory
-    const expenseDate = item.date.split('T')[0];
-    const paymentHistoryEntry = Object.entries(item.originalExpense.paymentHistory || {})
-      .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
-    const isPaid = paymentHistoryEntry?.[1]?.isPaid ?? false;
     
-    // Allow toggling in both directions (pay and refund)
-    onPaymentToggle(item);
+    // Start fade out animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0.5,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      onPaymentToggle(item);
+    });
   };
+
+  const getPaymentHistoryData = (date: string, paymentHistory?: { [key: string]: any }) => {
+    if (!paymentHistory) return undefined;
+    
+    const targetDate = date.split('T')[0];
+    const matchingKey = Object.keys(paymentHistory).find(key => key.split('T')[0] === targetDate);
+    if (!matchingKey) return undefined;
+
+    // Get the payment data and handle the nested structure
+    const paymentData = paymentHistory[matchingKey];
+    if (paymentData['025Z']) {
+      return paymentData['025Z'];
+    }
+    return paymentData;
+  };
+
+  const expenseDate = item.date;
+  const paymentHistoryData = getPaymentHistoryData(expenseDate, item.originalExpense.paymentHistory);
+  const isPaid = paymentHistoryData?.isPaid ?? false;
 
   // Custom render for the right column with payment button
   const renderRightColumn = () => {
@@ -141,20 +170,10 @@ export const ExpenseCard = ({
     today.setHours(0, 0, 0, 0);
     const paymentDate = new Date(item.date);
     paymentDate.setHours(0, 0, 0, 0);
-    const isOverdue = !item.paymentStatus?.isPaid && paymentDate < today;
-
-    // Check payment status from the original expense's paymentHistory
-    const expenseDate = item.date.split('T')[0];
-    const paymentHistoryEntry = Object.entries(item.originalExpense.paymentHistory || {})
-      .find(([timestamp]) => timestamp.split('T')[0] === expenseDate);
     
-    // Extract the nested value if present
-    const paymentHistoryData = paymentHistoryEntry?.[1];
-    const actualPaymentData =
-      paymentHistoryData && typeof paymentHistoryData === 'object'
-        ? Object.values(paymentHistoryData)[0]
-        : {};
-    const isPaid = actualPaymentData?.isPaid ?? false;
+    const paymentHistoryData = getPaymentHistoryData(item.date, item.originalExpense.paymentHistory);
+    const isPaid = paymentHistoryData?.isPaid ?? false;
+    const isOverdue = !isPaid && paymentDate < today;
 
     return (
       <View style={[
@@ -215,21 +234,34 @@ export const ExpenseCard = ({
   };
 
   return (
-    <Swipeable
-      ref={swipeableRef}
-      renderRightActions={renderRightActions}
-      onSwipeableWillOpen={handleSwipeableWillOpen}
-      rightThreshold={40}
-      leftThreshold={40}
-      overshootRight={false}
-      overshootLeft={false}
-    >
-      <BaseCard 
-        item={baseItem} 
-        onPress={() => onPress(item)}
-        renderRightColumn={renderRightColumn}
-      />
-    </Swipeable>
+    <Animated.View style={{
+      transform: [{
+        translateX: slideAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -50]
+        })
+      }]
+    }}>
+      <Swipeable
+        ref={swipeableRef}
+        renderRightActions={renderRightActions}
+        onSwipeableWillOpen={handleSwipeableWillOpen}
+        rightThreshold={40}
+        leftThreshold={40}
+        overshootRight={false}
+        overshootLeft={false}
+        style={[
+          styles.swipeableContainer,
+          isPaid && styles.paidSwipeableContainer
+        ]}
+      >
+        <BaseCard 
+          item={baseItem}
+          onPress={() => onPress(item)}
+          renderRightColumn={renderRightColumn}
+        />
+      </Swipeable>
+    </Animated.View>
   );
 };
 
@@ -257,19 +289,18 @@ const styles = StyleSheet.create({
   },
   rightActionsContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    width: 140,
+    height: 80,
+    marginVertical: 6,
+    marginHorizontal: 2,
+    borderRadius: 16,
+    overflow: 'hidden',
+    opacity: 0.9,
   },
   actionButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 60,
-    height: '100%',
-  },
-  leftActionsContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'flex-start',
-    paddingLeft: 20,
+    alignItems: 'center',
   },
   amountContainer: {
     alignItems: 'flex-end',
@@ -319,5 +350,11 @@ const styles = StyleSheet.create({
   },
   overduePayButton: {
     backgroundColor: '#FF3B30',
+  },
+  swipeableContainer: {
+    flex: 1,
+  },
+  paidSwipeableContainer: {
+    opacity: 0.7,
   },
 });
