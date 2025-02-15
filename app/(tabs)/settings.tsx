@@ -140,106 +140,6 @@ export default function Settings() {
         });
     };
 
-    const handleTestNotification = async () => {
-        try {
-            const hasPermission = await NotificationService.requestPermissions();
-            if (!hasPermission) {
-                Alert.alert(t('permissionRequired'), t('enableNotificationsMessage'));
-                return;
-            }
-
-            const testExpense = {
-                id: 'test-expense-' + Date.now(),
-                name: t('testExpense'),
-                amount: 99.99,
-                currency: preferredCurrency,
-                startDate: new Date().toISOString(),
-                date: new Date(),
-                color: '#FF6B6B',
-                notification: {
-                    enabled: true,
-                    daysInAdvance: 1,
-                    time: {
-                        hour: 12,
-                        minute: 30
-                    }
-                },
-                recurrence: {
-                    type: 'once' as const,
-                },
-                paymentHistory: {}
-            };
-
-            await NotificationService.testNotification(testExpense);
-            Alert.alert(t('success'), t('testNotificationSent'));
-        } catch (error) {
-            console.error('Failed to send test notification:', error);
-            Alert.alert(t('error'), t('testNotificationError'));
-        }
-    };
-
-    const handleTestScheduledNotification = async () => {
-        try {
-            const hasPermission = await NotificationService.requestPermissions();
-            if (!hasPermission) {
-                Alert.alert(t('permissionRequired'), t('enableNotificationsMessage'));
-                return;
-            }
-
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            tomorrow.setHours(14, 0, 0, 0);
-
-            const testExpense = {
-                id: 'test-scheduled-expense-' + Date.now(),
-                name: t('tomorrowTestExpense'),
-                amount: 149.99,
-                currency: preferredCurrency,
-                startDate: tomorrow.toISOString(),
-                date: tomorrow,
-                color: '#4ECDC4',
-                notification: {
-                    enabled: true,
-                    daysInAdvance: 1,
-                    time: {
-                        hour: 12,
-                        minute: 30
-                    }
-                },
-                recurrence: {
-                    type: 'once' as const,
-                },
-                paymentHistory: {}
-            };
-
-            await NotificationService.testScheduledNotification(testExpense, 1);
-            Alert.alert(t('success'), t('scheduledNotificationSent'));
-
-            await NotificationService.scheduleExpenseNotification(testExpense);
-        } catch (error) {
-            console.error('Failed to schedule test notification:', error);
-            Alert.alert(t('error'), t('scheduledNotificationError'));
-        }
-    };
-
-    const handleViewScheduledNotifications = async () => {
-        try {
-            const scheduledNotifications = await NotificationService.getAllScheduledNotifications();
-            Alert.alert(
-                t('scheduledNotifications'),
-                t('scheduledNotificationsCount').replace('{count}', scheduledNotifications.length.toString()) + '\n\n' +
-                scheduledNotifications.map((notification, index) => {
-                    const trigger = notification.trigger as any;
-                    const date = new Date(trigger.value);
-                    return `${index + 1}. "${notification.content.title}" ${t('scheduledFor')} ${date.toLocaleString()}`;
-                }).join('\n\n')
-            );
-        } catch (error) {
-            console.error('Failed to get scheduled notifications:', error);
-            Alert.alert(t('error'), t('getScheduledNotificationsError'));
-        }
-    };
-
     const handleShareApp = async () => {
         try {
             await Share.share({
@@ -429,20 +329,13 @@ export default function Settings() {
                     </SettingRow>
                     <SettingRow 
                         label={t('notifications')}
-                        icon={<FontAwesome name="bell" size={20} color="#FF5722" />}
+                        icon={<FontAwesome name="bell" size={20} color={colors.text} />}
                     >
                         <Switch
                             value={notificationsEnabled}
                             onValueChange={handleNotificationChange}
-                            trackColor={{ 
-                                false: colors.background === '#000000' ? '#3A3A3C' : '#E5E5EA',
-                                true: '#2563EB'
-                            }}
-                            thumbColor={
-                                notificationsEnabled ? '#60A5FA' : '#93C5FD'
-                            }
-                            ios_backgroundColor={colors.background === '#000000' ? '#3A3A3C' : '#E5E5EA'}
-                            style={{ transform: [{ scaleX: 0.95 }, { scaleY: 0.9 }] }}
+                            trackColor={{ false: '#767577', true: colors.primary }}
+                            thumbColor="#f4f3f4"
                         />
                     </SettingRow>
                 </SettingSection>
@@ -487,38 +380,6 @@ export default function Settings() {
                     >
                         <FontAwesome name="chevron-right" size={12} color={colors.text} />
                     </SettingRow>
-                </SettingSection>
-
-                <SettingSection title={t('notificationTesting')}>
-                    <ThemedView style={styles.testSection}>
-                        <ThemedText style={styles.testDescription}>
-                            {t('testDescription')}
-                        </ThemedText>
-                        
-                        <ThemedButton
-                            style={[styles.testButton, { marginBottom: 12 }]}
-                            textStyle={styles.buttonText}
-                            onPress={handleTestNotification}
-                        >
-                            {t('sendTestNotification')}
-                        </ThemedButton>
-
-                        <ThemedButton
-                            style={[styles.testButton, { marginBottom: 12 }]}
-                            textStyle={styles.buttonText}
-                            onPress={handleTestScheduledNotification}
-                        >
-                            {t('testTomorrowNotification')}
-                        </ThemedButton>
-
-                        <ThemedButton
-                            style={[styles.testButton, { backgroundColor: colors.card.subtle }]}
-                            textStyle={styles.buttonText}
-                            onPress={handleViewScheduledNotifications}
-                        >
-                            {t('viewScheduledNotifications')}
-                        </ThemedButton>
-                    </ThemedView>
                 </SettingSection>
             </ScrollView>
 

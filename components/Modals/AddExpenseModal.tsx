@@ -234,7 +234,7 @@ export function AddExpenseModal({
         })
       },
       paymentHistory: initialExpense?.paymentHistory || {},
-      selectedOccurrenceDate: selectedDate
+      ...(selectedDate && { selectedOccurrenceDate: selectedDate })
     };
 
     console.log('Final expenseData:', expenseData);

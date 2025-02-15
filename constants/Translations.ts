@@ -134,19 +134,6 @@ export const translations = {
     languageUpdateMessage: 'Language selection will be available in the next update.',
     shareMessage: 'Check out PaySub - the best subscription and expense tracking app!',
 
-    // Notification Testing
-    success: 'Success',
-    testExpense: 'Test Expense',
-    tomorrowTestExpense: "Tomorrow's Test Expense",
-    testNotificationSent: 'Test notification sent! You should receive it shortly.',
-    testNotificationError: 'Failed to send test notification. Please try again.',
-    scheduledNotificationSent: 'Scheduled a test notification for 1 minute from now. This simulates getting a notification for tomorrow\'s expense.',
-    scheduledNotificationError: 'Failed to schedule test notification. Please try again.',
-    scheduledNotifications: 'Scheduled Notifications',
-    scheduledNotificationsCount: 'You have {count} scheduled notification(s).',
-    scheduledFor: 'scheduled for',
-    getScheduledNotificationsError: 'Failed to get scheduled notifications. Please try again.',
-
     // Time Units
     day: 'day',
     days: 'days',
@@ -421,19 +408,6 @@ export const translations = {
     dataImportMessage: 'Veri içe aktarma özelliği bir sonraki güncellemede kullanılabilir olacak.',
     languageUpdateMessage: 'Dil seçimi bir sonraki güncellemede kullanılabilir olacak.',
     shareMessage: "PaySub'ı deneyin - en iyi abonelik ve gider takip uygulaması!",
-
-    // Notification Testing
-    success: 'Başarılı',
-    testExpense: 'Test Gideri',
-    tomorrowTestExpense: 'Yarının Test Gideri',
-    testNotificationSent: 'Test bildirimi gönderildi! Kısa süre içinde almalısınız.',
-    testNotificationError: 'Test bildirimi gönderilemedi. Lütfen tekrar deneyin.',
-    scheduledNotificationSent: 'Şu andan 1 dakika sonrası için test bildirimi planlandı. Bu, yarının gideri için bildirim almayı simüle eder.',
-    scheduledNotificationError: 'Test bildirimi planlanamadı. Lütfen tekrar deneyin.',
-    scheduledNotifications: 'Planlanmış Bildirimler',
-    scheduledNotificationsCount: '{count} adet planlanmış bildiriminiz var.',
-    scheduledFor: 'için planlandı',
-    getScheduledNotificationsError: 'Planlanmış bildirimler alınamadı. Lütfen tekrar deneyin.',
 
     // Time Units
     day: 'gün',

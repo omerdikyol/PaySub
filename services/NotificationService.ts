@@ -88,59 +88,6 @@ export class NotificationService {
     return notificationId;
   }
 
-  // Test function to trigger an immediate notification
-  static async testNotification(expense: ExpenseItem) {
-    const notificationId = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Test Notification',
-        body: `Test notification for expense "${expense.name}" of ${expense.amount} ${expense.currency}`,
-        data: { expenseId: expense.id },
-      },
-      trigger: null, // null trigger means send immediately
-    });
-
-    return notificationId;
-  }
-
-  // Test function to trigger a scheduled notification in X minutes
-  static async testScheduledNotification(expense: ExpenseItem, minutesFromNow: number) {
-    const notificationDate = new Date(Date.now() + minutesFromNow * 60 * 1000);
-    
-    const notificationId = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Scheduled Test Notification',
-        body: `Scheduled test notification for expense "${expense.name}" of ${expense.amount} ${expense.currency}`,
-        data: { expenseId: expense.id },
-      },
-      trigger: notificationDate,
-    });
-
-    return notificationId;
-  }
-
-  // Function to get all scheduled notifications
-  static async getAllScheduledNotifications() {
-    return await Notifications.getAllScheduledNotificationsAsync();
-  }
-
-  // Function to cancel a specific notification
-  static async cancelNotification(notificationId: string) {
-    await Notifications.cancelScheduledNotificationAsync(notificationId);
-  }
-
-  // Function to cancel all notifications
-  static async cancelAllNotifications() {
-    await Notifications.cancelAllScheduledNotificationsAsync();
-  }
-
-  // Function to set notifications enabled state
-  static async setNotificationsEnabled(enabled: boolean) {
-    if (!enabled) {
-      // If notifications are being disabled, cancel all scheduled notifications
-      await this.cancelAllNotifications();
-    }
-  }
-
   static async scheduleDailyExpenseNotifications(expenses: ExpenseItem[]) {
     const now = new Date();
     const yesterday = new Date(now);
@@ -197,6 +144,16 @@ export class NotificationService {
       });
 
       return notificationId;
+    }
+  }
+
+  static async cancelAllNotifications() {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  }
+
+  static async setNotificationsEnabled(enabled: boolean) {
+    if (!enabled) {
+      await this.cancelAllNotifications();
     }
   }
 } 

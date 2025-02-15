@@ -1,20 +1,27 @@
 # PaySub backend service
 
-FROM node:16
+FROM node:18-slim
 
+# Set environment
 ENV NODE_ENV=production
 
+# Create app directory
 WORKDIR /app
 
-COPY ["package.json", "package-lock.json*", "./"]
+# Copy package files
+COPY package*.json ./
 
-# Install all dependencies (including devDependencies for TypeScript compilation)
-RUN npm install
+# Install dependencies including TypeScript
+RUN npm install && \
+    npm install -g typescript && \
+    npm install @types/node --save-dev
 
+# Copy source code
 COPY . .
 
 # Build TypeScript
-RUN npm run build
+RUN npm run build && \
+    npm prune --production
 
 EXPOSE 3000
 
