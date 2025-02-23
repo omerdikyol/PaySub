@@ -18,6 +18,7 @@ export default function TabOneScreen() {
   const router = useRouter();
   const { t } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showCalendar, setShowCalendar] = useState(false);
   const { incomes, expenses, isLoading: isDataLoading } = useFinance();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
@@ -164,110 +165,107 @@ export default function TabOneScreen() {
 
   const filteredExpenses = filterExpensesByPaymentStatus(expenses);
 
+  const getPaymentsForCalendar = () => {
+    const allPayments: Array<{
+      id: string;
+      name: string;
+      date: string;
+      color: string;
+      type: 'income' | 'expense';
+    }> = [];
+    
+    // Add expenses
+    monthOccurrences.forEach(occurrence => {
+      if (occurrence.originalExpense) {
+        const status = checkPaymentStatus(occurrence, occurrence.date);
+        allPayments.push({
+          id: occurrence.id || String(Math.random()),
+          name: occurrence.originalExpense?.title || occurrence.name || t('expense'),
+          date: new Date(occurrence.date).toISOString().split('T')[0],
+          color: status.isPaid ? '#34C759' : '#FF3B30',
+          type: 'expense'
+        });
+      }
+    });
+
+    // Add incomes
+    incomes.forEach(income => {
+      const incomeDate = new Date(income.date);
+      if (incomeDate.getMonth() === currentDate.getMonth() && 
+          incomeDate.getFullYear() === currentDate.getFullYear()) {
+        allPayments.push({
+          id: income.id || String(Math.random()),
+          name: income.title || income.name || t('income'),
+          date: incomeDate.toISOString().split('T')[0],
+          color: '#007AFF',
+          type: 'income'
+        });
+      }
+    });
+
+    console.log('All payments for calendar:', allPayments);
+    return allPayments;
+  };
+
   return (
     <ScreenLayout>
-      {/* Header */}
-      <ThemedView style={styles.headerContainer}>
-        <View>
-          <ThemedText style={styles.welcomeText}>{t('welcomeBack')}</ThemedText>
-          <ThemedText style={styles.headerTitle}>{t('dashboard')}</ThemedText>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <View style={styles.headerContainer}>
+          <View>
+            <ThemedText style={styles.welcomeText}>{t('dashboard')}</ThemedText>
+            <ThemedText style={styles.headerTitle}>PaySub</ThemedText>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => router.push('/settings')}
+            >
+              <Icon name="cog" size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
         </View>
-        <TouchableOpacity 
-          style={styles.settingsButton}
-          onPress={() => router.push('/(tabs)/settings')}
-        >
-          <Icon name="cog" size={24} color={colors.text} />
-        </TouchableOpacity>
-      </ThemedView>
-      <MonthNavigation 
-        currentDate={currentDate} 
-        onMonthChange={handleMonthChange}
-      />
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        
+        {/* Main Content */}
         <View>
-          <Animated.View style={{
-            opacity: mainCardAnim,
-            transform: [{
-              translateY: mainCardAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [20, 0]
-              })
-            }]
-          }}>
-            <ThemedCard style={styles.mainCard}>
-              {!isDataLoading && isDataReady ? (
-                <>
-                  <View style={styles.mainCardHeader}>
-                    <View>
-                      <ThemedText style={styles.cardTitle}>{t('monthlyBalance')}</ThemedText>
-                      <ThemedText style={styles.subtitle}>
-                        {monthlyData.remaining >= 0 ? t('availableToSpend') : t('overBudget')}
-                      </ThemedText>
-                    </View>
-                    <Icon 
-                      name={monthlyData.remaining >= 0 ? "cash-plus" : "cash-minus"} 
-                      size={32} 
-                      color={monthlyData.remaining >= 0 ? colors.success : colors.error} 
-                    />
-                  </View>
-                  <ThemedText style={[
-                    styles.amount,
-                    { color: monthlyData.remaining >= 0 ? colors.success : colors.error }
-                  ]}>
-                    {monthlyData.formatInPreferredCurrency(monthlyData.remaining)}
-                  </ThemedText>
-                  <BalanceProgressBar 
-                    income={monthlyData.income}
-                    expenses={monthlyData.expenses}
-                    style={styles.progressBar}
-                  />
-                </>
-              ) : (
-                <View style={[styles.shimmer, styles.mainCardShimmer]}>
-                  <Animated.View style={{
-                    transform: [{
-                      translateX: shimmerAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-100, 100]
-                      })
-                    }]
-                  }}>
-                    <View style={[styles.shimmer, styles.mainCardShimmer]} />
-                  </Animated.View>
-                </View>
-              )}
-            </ThemedCard>
-          </Animated.View>
-
-          <Animated.View style={{
-            opacity: incomeExpenseAnim,
-            transform: [{
-              translateY: incomeExpenseAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [20, 0]
-              })
-            }]
-          }}>
-            <View style={styles.row}>
-              <TouchableOpacity 
-                style={styles.cardWrapper}
-                activeOpacity={0.7}
-                onPress={() => router.push('/(tabs)/income')}
-              >
-                <ThemedCard style={[styles.card, styles.halfCard]}>
+              <Animated.View style={{
+                opacity: mainCardAnim,
+                transform: [{
+                  translateY: mainCardAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0]
+                  })
+                }]
+              }}>
+                <ThemedCard style={styles.mainCard}>
                   {!isDataLoading && isDataReady ? (
                     <>
-                      <View style={[styles.iconCircle, { backgroundColor: colors.success + '20' }]}>
-                        <Icon name="arrow-down" size={24} color={colors.success} />
+                      <View style={styles.mainCardHeader}>
+                        <View>
+                          <ThemedText style={styles.cardTitle}>{t('monthlyBalance')}</ThemedText>
+                          <ThemedText style={styles.subtitle}>
+                            {monthlyData.remaining >= 0 ? t('availableToSpend') : t('overBudget')}
+                          </ThemedText>
+                        </View>
+                        <Icon 
+                          name={monthlyData.remaining >= 0 ? "cash-plus" : "cash-minus"} 
+                          size={32} 
+                          color={monthlyData.remaining >= 0 ? colors.success : colors.error} 
+                        />
                       </View>
-                      <ThemedText style={styles.cardLabel}>{t('income')}</ThemedText>
-                      <ThemedText style={[styles.amount, styles.smallerAmount]}>
-                        {monthlyData.formatInPreferredCurrency(monthlyData.income)}
+                      <ThemedText style={[
+                        styles.amount,
+                        { color: monthlyData.remaining >= 0 ? colors.success : colors.error }
+                      ]}>
+                        {monthlyData.formatInPreferredCurrency(monthlyData.remaining)}
                       </ThemedText>
+                      <BalanceProgressBar 
+                        income={monthlyData.income}
+                        expenses={monthlyData.expenses}
+                        style={styles.progressBar}
+                      />
                     </>
                   ) : (
-                    <View style={[styles.shimmer, styles.halfCardShimmer]}>
+                    <View style={[styles.shimmer, styles.mainCardShimmer]}>
                       <Animated.View style={{
                         transform: [{
                           translateX: shimmerAnim.interpolate({
@@ -276,118 +274,161 @@ export default function TabOneScreen() {
                           })
                         }]
                       }}>
-                        <View style={[styles.shimmer, styles.halfCardShimmer]} />
+                        <View style={[styles.shimmer, styles.mainCardShimmer]} />
                       </Animated.View>
                     </View>
                   )}
                 </ThemedCard>
-              </TouchableOpacity>
+              </Animated.View>
 
-              <TouchableOpacity 
-                style={styles.cardWrapper}
+              <Animated.View style={{
+                opacity: incomeExpenseAnim,
+                transform: [{
+                  translateY: incomeExpenseAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0]
+                  })
+                }]
+              }}>
+                <View style={styles.row}>
+                  <TouchableOpacity 
+                    style={styles.cardWrapper}
+                    activeOpacity={0.7}
+                    onPress={() => router.push('/(tabs)/income')}
+                  >
+                    <ThemedCard style={[styles.card, styles.halfCard]}>
+                      {!isDataLoading && isDataReady ? (
+                        <>
+                          <View style={[styles.iconCircle, { backgroundColor: colors.success + '20' }]}>
+                            <Icon name="arrow-down" size={24} color={colors.success} />
+                          </View>
+                          <ThemedText style={styles.cardLabel}>{t('income')}</ThemedText>
+                          <ThemedText style={[styles.amount, styles.smallerAmount]}>
+                            {monthlyData.formatInPreferredCurrency(monthlyData.income)}
+                          </ThemedText>
+                        </>
+                      ) : (
+                        <View style={[styles.shimmer, styles.halfCardShimmer]}>
+                          <Animated.View style={{
+                            transform: [{
+                              translateX: shimmerAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [-100, 100]
+                              })
+                            }]
+                          }}>
+                            <View style={[styles.shimmer, styles.halfCardShimmer]} />
+                          </Animated.View>
+                        </View>
+                      )}
+                    </ThemedCard>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={styles.cardWrapper}
+                    activeOpacity={0.7}
+                    onPress={() => router.push('/(tabs)/expense')}
+                  >
+                    <ThemedCard style={[styles.card, styles.halfCard]}>
+                      {!isDataLoading && isDataReady ? (
+                        <>
+                          <View style={[styles.iconCircle, { backgroundColor: colors.error + '20' }]}>
+                            <Icon name="arrow-up" size={24} color={colors.error} />
+                          </View>
+                          <ThemedText style={styles.cardLabel}>{t('expense')}</ThemedText>
+                          <ThemedText style={[styles.amount, styles.smallerAmount]}>
+                            {monthlyData.formatInPreferredCurrency(monthlyData.expenses)}
+                          </ThemedText>
+                        </>
+                      ) : (
+                        <View style={[styles.shimmer, styles.halfCardShimmer]}>
+                          <Animated.View style={{
+                            transform: [{
+                              translateX: shimmerAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [-100, 100]
+                              })
+                            }]
+                          }}>
+                            <View style={[styles.shimmer, styles.halfCardShimmer]} />
+                          </Animated.View>
+                        </View>
+                      )}
+                    </ThemedCard>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+
+              <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => router.push('/(tabs)/expense')}
               >
-                <ThemedCard style={[styles.card, styles.halfCard]}>
-                  {!isDataLoading && isDataReady ? (
-                    <>
-                      <View style={[styles.iconCircle, { backgroundColor: colors.error + '20' }]}>
-                        <Icon name="arrow-up" size={24} color={colors.error} />
-                      </View>
-                      <ThemedText style={styles.cardLabel}>{t('expense')}</ThemedText>
-                      <ThemedText style={[styles.amount, styles.smallerAmount]}>
-                        {monthlyData.formatInPreferredCurrency(monthlyData.expenses)}
-                      </ThemedText>
-                    </>
-                  ) : (
-                    <View style={[styles.shimmer, styles.halfCardShimmer]}>
+                <Animated.View style={{
+                  opacity: paymentCardAnim,
+                  transform: [{
+                    translateY: paymentCardAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [20, 0]
+                    })
+                  }]
+                }}>
+                  <ThemedCard style={[styles.card, styles.debtCard]}>
+                    <View style={styles.debtHeader}>
+                      <ThemedText style={styles.sectionTitle}>{t('paymentStatus')}</ThemedText>
+                      <Icon name="chevron-right" size={24} color={colors.text} />
+                    </View>
+                    {!isDataLoading && isDataReady ? (
                       <Animated.View style={{
+                        opacity: paymentCardAnim,
                         transform: [{
-                          translateX: shimmerAnim.interpolate({
+                          scale: paymentCardAnim.interpolate({
                             inputRange: [0, 1],
-                            outputRange: [-100, 100]
+                            outputRange: [0.95, 1]
                           })
                         }]
                       }}>
-                        <View style={[styles.shimmer, styles.halfCardShimmer]} />
+                        <View style={styles.debtSection}>
+                          <View style={styles.debtGroup}>
+                            <View style={[styles.iconCircle, { backgroundColor: colors.error + '20' }]}>
+                              <Icon name="clock-outline" size={24} color={colors.error} />
+                            </View>
+                            <ThemedText style={styles.debtLabel}>{t('unpaid')}</ThemedText>
+                            <ThemedText style={[styles.debtAmount, { color: colors.error }]}>
+                              {monthlyData.formatInPreferredCurrency(monthlyData.unpaid)}
+                            </ThemedText>
+                          </View>
+                          <View style={styles.divider} />
+                          <View style={styles.debtGroup}>
+                            <View style={[styles.iconCircle, { backgroundColor: colors.success + '20' }]}>
+                              <Icon name="check-circle-outline" size={24} color={colors.success} />
+                            </View>
+                            <ThemedText style={styles.debtLabel}>{t('paid')}</ThemedText>
+                            <ThemedText style={[styles.debtAmount, { color: colors.success }]}>
+                              {monthlyData.formatInPreferredCurrency(monthlyData.paid)}
+                            </ThemedText>
+                          </View>
+                        </View>
                       </Animated.View>
-                    </View>
-                  )}
-                </ThemedCard>
+                    ) : (
+                      <View style={styles.debtSection}>
+                        <View style={[styles.shimmer, styles.loadingShimmer]}>
+                          <Animated.View style={{
+                            transform: [{
+                              translateX: shimmerAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [-100, 100]
+                              })
+                            }]
+                          }}>
+                            <View style={[styles.shimmer, styles.loadingShimmer]} />
+                          </Animated.View>
+                        </View>
+                      </View>
+                    )}
+                  </ThemedCard>
+                </Animated.View>
               </TouchableOpacity>
             </View>
-          </Animated.View>
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => router.push('/(tabs)/expense')}
-          >
-            <Animated.View style={{
-              opacity: paymentCardAnim,
-              transform: [{
-                translateY: paymentCardAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [20, 0]
-                })
-              }]
-            }}>
-              <ThemedCard style={[styles.card, styles.debtCard]}>
-                <View style={styles.debtHeader}>
-                  <ThemedText style={styles.sectionTitle}>{t('paymentStatus')}</ThemedText>
-                  <Icon name="chevron-right" size={24} color={colors.text} />
-                </View>
-                {!isDataLoading && isDataReady ? (
-                  <Animated.View style={{
-                    opacity: paymentCardAnim,
-                    transform: [{
-                      scale: paymentCardAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.95, 1]
-                      })
-                    }]
-                  }}>
-                    <View style={styles.debtSection}>
-                      <View style={styles.debtGroup}>
-                        <View style={[styles.iconCircle, { backgroundColor: colors.error + '20' }]}>
-                          <Icon name="clock-outline" size={24} color={colors.error} />
-                        </View>
-                        <ThemedText style={styles.debtLabel}>{t('unpaid')}</ThemedText>
-                        <ThemedText style={[styles.debtAmount, { color: colors.error }]}>
-                          {monthlyData.formatInPreferredCurrency(monthlyData.unpaid)}
-                        </ThemedText>
-                      </View>
-                      <View style={styles.divider} />
-                      <View style={styles.debtGroup}>
-                        <View style={[styles.iconCircle, { backgroundColor: colors.success + '20' }]}>
-                          <Icon name="check-circle-outline" size={24} color={colors.success} />
-                        </View>
-                        <ThemedText style={styles.debtLabel}>{t('paid')}</ThemedText>
-                        <ThemedText style={[styles.debtAmount, { color: colors.success }]}>
-                          {monthlyData.formatInPreferredCurrency(monthlyData.paid)}
-                        </ThemedText>
-                      </View>
-                    </View>
-                  </Animated.View>
-                ) : (
-                  <View style={styles.debtSection}>
-                    <View style={[styles.shimmer, styles.loadingShimmer]}>
-                      <Animated.View style={{
-                        transform: [{
-                          translateX: shimmerAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [-100, 100]
-                          })
-                        }]
-                      }}>
-                        <View style={[styles.shimmer, styles.loadingShimmer]} />
-                      </Animated.View>
-                    </View>
-                  </View>
-                )}
-              </ThemedCard>
-            </Animated.View>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     </ScreenLayout>
   );
@@ -533,5 +574,12 @@ const styles = StyleSheet.create({
   halfCardShimmer: {
     height: 100,
     width: '100%',
+  },
+  container: {
+    flex: 1,
+  },
+  calendarButton: {
+    padding: 8,
+    borderRadius: 12,
   },
 });

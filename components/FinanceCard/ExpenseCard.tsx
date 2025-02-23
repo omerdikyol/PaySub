@@ -74,6 +74,32 @@ export const ExpenseCard = ({
   const slideAnim = useRef(new Animated.Value(0)).current;
   
   // Transform the ExpenseItem into BaseFinanceItem
+  const date = new Date(item.date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const paymentDate = new Date(item.date);
+  paymentDate.setHours(0, 0, 0, 0);
+  const isOverdue = !isPaid && paymentDate < today;
+
+  // Custom render for the date column to show overdue status
+  const renderDateColumn = () => {
+    const date = new Date(item.date);
+    const day = date.getDate();
+    const getShortMonth = (date: Date) => {
+      const monthIndex = date.getMonth();
+      const monthKeys = ['jan', 'feb', 'mar', 'apr', 'may_short', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      return t(monthKeys[monthIndex]);
+    };
+    const month = getShortMonth(date);
+
+    return (
+      <View style={styles.dateColumn}>
+        <ThemedText style={[styles.dayText, isOverdue && styles.overdueDayText]}>{day}</ThemedText>
+        <ThemedText style={[styles.monthText, isOverdue && styles.overdueMonthText]}>{month}</ThemedText>
+      </View>
+    );
+  };
+
   const baseItem: BaseFinanceItem = {
     id: item.originalExpense.id,
     date: item.date,
@@ -192,11 +218,7 @@ export const ExpenseCard = ({
               {formatCurrency(item.historicalAmount, item.originalExpense.currency)}
             </ThemedText>
           )} */}
-          {isOverdue && !isPaid && (
-            <View style={styles.overdueBadge}>
-              <FontAwesome name="exclamation" size={10} color="#fff" />
-            </View>
-          )}
+
         </View>
 
         <View style={styles.actionsRow}>
@@ -259,22 +281,50 @@ export const ExpenseCard = ({
           item={baseItem}
           onPress={() => onPress(item)}
           renderRightColumn={renderRightColumn}
+          renderDateColumn={renderDateColumn}
         />
       </Swipeable>
     </Animated.View>
   );
 };
 
+
+
 const styles = StyleSheet.create({
+  dateColumn: {
+    width: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  dayText: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  monthText: {
+    fontSize: 13,
+    opacity: 0.6,
+  },
+  overdueDayText: {
+    color: '#FF3B30',
+  },
+  overdueMonthText: {
+    color: '#FF3B30',
+    opacity: 1,
+  },
   rightColumn: {
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     minWidth: 80,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   amountText: {
     fontSize: 16,
     fontWeight: '600',
   },
+
   historicalAmountText: {
     fontSize: 12,
     color: '#888',
@@ -304,16 +354,9 @@ const styles = StyleSheet.create({
   },
   amountContainer: {
     alignItems: 'flex-end',
+    position: 'relative',
   },
-  overdueBadge: {
-    backgroundColor: '#FF3B30',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 4,
-  },
+
   paidRightColumn: {
     opacity: 0.7,
   },

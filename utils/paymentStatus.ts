@@ -4,22 +4,14 @@ export const checkPaymentStatus = (expense: any, targetDate: string) => {
   // Format target date to match date part only
   const targetDateStr = new Date(targetDate).toISOString().split('T')[0];
 
-  // Check all payment entries
-  for (const [timestamp, payment] of Object.entries(paymentHistory)) {
-    // Compare only the date part
-    const paymentDateStr = timestamp.split('T')[0];
-    
-    if (paymentDateStr === targetDateStr) {
-      // Handle both nested and non-nested structures
-      const paymentStatus = (payment as any)["025Z"] || payment;
-      
-      if (paymentStatus?.isPaid) {
-        return {
-          isPaid: true,
-          paidDate: paymentStatus.paidDate
-        };
-      }
-    }
+  // Check if we have a payment entry for this date
+  const paymentEntry = paymentHistory[targetDateStr] || paymentHistory[targetDate];
+  
+  if (paymentEntry?.isPaid) {
+    return {
+      isPaid: true,
+      paidDate: paymentEntry.paidDate
+    };
   }
 
   return {

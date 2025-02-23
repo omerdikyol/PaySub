@@ -180,9 +180,8 @@ export default function Expense() {
         expenseDate,
         newIsPaid
       );
-
-      // Update the active tab to reflect the new payment status
-      setActiveTab(newIsPaid ? 'paid' : 'unpaid');
+      
+      // Don't switch tabs automatically
     } catch (error) {
       console.error('Error toggling payment status:', error);
     }

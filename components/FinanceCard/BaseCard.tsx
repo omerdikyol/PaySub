@@ -37,9 +37,10 @@ type BaseCardProps = {
   item: BaseFinanceItem;
   onPress?: (item: BaseFinanceItem) => void;
   renderRightColumn?: () => React.ReactNode;
+  renderDateColumn?: () => React.ReactNode;
 };
 
-export const BaseCard = ({ item, onPress, renderRightColumn }: BaseCardProps) => {
+export const BaseCard = ({ item, onPress, renderRightColumn, renderDateColumn }: BaseCardProps) => {
   const { colors, colorScheme } = useTheme();
   const { t } = useLanguage();
   const {
@@ -109,20 +110,22 @@ export const BaseCard = ({ item, onPress, renderRightColumn }: BaseCardProps) =>
           {/* Card Content Container */}
           <View style={styles.cardContent}>
             {/* Date Column */}
-            <View style={styles.dateColumn}>
-              <ThemedText style={[
-                styles.dayText,
-                typeof item.opacity === 'number' ? { opacity: item.opacity } : undefined
-              ]}>
-                {day}
-              </ThemedText>
-              <ThemedText style={[
-                styles.monthText,
-                typeof item.opacity === 'number' ? { opacity: item.opacity } : undefined
-              ]}>
-                {month}
-              </ThemedText>
-            </View>
+            {renderDateColumn ? renderDateColumn() : (
+              <View style={styles.dateColumn}>
+                <ThemedText style={[
+                  styles.dayText,
+                  typeof item.opacity === 'number' ? { opacity: item.opacity } : undefined
+                ]}>
+                  {day}
+                </ThemedText>
+                <ThemedText style={[
+                  styles.monthText,
+                  typeof item.opacity === 'number' ? { opacity: item.opacity } : undefined
+                ]}>
+                  {month}
+                </ThemedText>
+              </View>
+            )}
 
             {/* Main Content */}
             <View style={[
