@@ -1,22 +1,25 @@
 import { StyleSheet, View, ScrollView, TouchableOpacity, Animated } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
 import { ThemedView, ThemedText, ThemedCard } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
 import { ScreenLayout } from '@/components/ScreenLayout';
 import { MonthNavigation } from '@/components/MonthNavigation';
 import { BalanceProgressBar } from '@/components/BalanceProgressBar';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
-import { useState, useEffect, useRef } from 'react';
 import { useFinance } from '@/context/FinanceContext';
 import { useRouter } from 'expo-router';
-import { useDashboardCalculations } from '@/hooks/useDashboardCalculations';
 import { useLanguage } from '@/context/LanguageContext';
 import { checkPaymentStatus } from '@/utils/paymentStatus';
 import { useFinanceCalculations } from '@/hooks/useFinanceCalculations';
+import { useCurrency } from '@/context/CurrencyContext';
+import { getOccurrencesInRange } from '@/utils/occurrences';
+import { getExpenseOccurrencesInRange } from '@/utils/expenseOccurrences';
 
 export default function TabOneScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const { t } = useLanguage();
+  const { preferredCurrency, formatInPreferredCurrency } = useCurrency();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
   const { incomes, expenses, isLoading: isDataLoading } = useFinance();
@@ -28,8 +31,7 @@ export default function TabOneScreen() {
     totalByCurrency,
     totalInPreferredCurrency,
     sortedOccurrences,
-    preferredCurrency,
-    formatInPreferredCurrency,
+    isLoading: isFinanceCalculationsLoading,
   } = useFinanceCalculations(
     expenses,
     currentDate,
@@ -39,23 +41,106 @@ export default function TabOneScreen() {
     false
   );
 
-  const [monthlyData, setMonthlyData] = useState({
+  // Define the type for our monthly data
+  type MonthlyDataType = {
+    income: number;
+    expenses: number;
+    remaining: number;
+    progress: number;
+    paid: number;
+    unpaid: number;
+    formatInPreferredCurrency: (amount: number) => string;
+    isLoading: boolean;
+  };
+
+  const [monthlyData, setMonthlyData] = useState<MonthlyDataType>({
     income: 0,
     expenses: 0,
     remaining: 0,
     progress: 0,
     paid: 0,
     unpaid: 0,
-    formatInPreferredCurrency: (amount: number) => `${amount}`,
+    formatInPreferredCurrency: formatInPreferredCurrency,
     isLoading: true
   });
 
-  const calculations = useDashboardCalculations(incomes, expenses, currentDate);
+  // Adapter function to convert Expense to ExpenseItem
+  const adaptExpensesToExpenseItems = (expenses: any[]) => {
+    return expenses.map(expense => ({
+      ...expense,
+      name: expense.description || '',
+      startDate: expense.date,
+      color: expense.category || '#000000',
+      recurrence: {
+        type: 'once',
+        ...expense.recurrence
+      }
+    }));
+  };
 
   const [isDataReady, setIsDataReady] = useState(false);
   const mainCardAnim = useRef(new Animated.Value(0)).current;
   const incomeExpenseAnim = useRef(new Animated.Value(0)).current;
   const paymentCardAnim = useRef(new Animated.Value(0)).current;
+
+  // Calculate payment totals from occurrences
+  const calculatePaymentTotals = (occurrences: typeof monthOccurrences) => {
+    let paidTotal = 0;
+    let unpaidTotal = 0;
+
+    occurrences.forEach(expense => {
+      if (!expense?.originalExpense) return;
+      const status = checkPaymentStatus(expense, expense.date);
+      
+      if (status.isPaid) {
+        paidTotal += expense.convertedAmount;
+      } else {
+        unpaidTotal += expense.convertedAmount;
+      }
+    });
+
+    return { paidTotal, unpaidTotal };
+  };
+
+  // Update monthly data when monthOccurrences changes
+  useEffect(() => {
+    if (isFinanceCalculationsLoading || isDataLoading) return;
+    
+    // Calculate payment totals
+    const { paidTotal, unpaidTotal } = calculatePaymentTotals(monthOccurrences);
+    
+    // Calculate total expenses
+    const totalExpenses = paidTotal + unpaidTotal;
+    
+    // Calculate total income (simplified for now)
+    const totalIncome = incomes.reduce((sum, income) => {
+      const incomeDate = new Date(income.date);
+      if (incomeDate.getMonth() === currentDate.getMonth() && 
+          incomeDate.getFullYear() === currentDate.getFullYear()) {
+        return sum + income.amount;
+      }
+      return sum;
+    }, 0);
+    
+    // Calculate remaining budget
+    const remaining = totalIncome - totalExpenses;
+    const spendingProgress = totalExpenses / (totalIncome || 1); // Avoid division by zero
+    
+    // Update monthly data
+    setMonthlyData({
+      income: totalIncome,
+      expenses: totalExpenses,
+      remaining,
+      progress: Math.min(spendingProgress, 1), // Cap at 100%
+      paid: paidTotal,
+      unpaid: unpaidTotal,
+      formatInPreferredCurrency,
+      isLoading: false
+    });
+    
+    // Animate cards
+    animateAllCards();
+  }, [monthOccurrences, incomes, currentDate, isFinanceCalculationsLoading, isDataLoading]);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -82,33 +167,6 @@ export default function TabOneScreen() {
       ])
     ).start();
   }, []);
-
-  useEffect(() => {
-    if (!isDataLoading) {
-      calculations.then(data => {
-        setMonthlyData(data);
-        animateAllCards();
-      });
-    }
-  }, [calculations, isDataLoading]);
-
-  const calculatePaymentTotals = (occurrences: typeof monthOccurrences) => {
-    let paidTotal = 0;
-    let unpaidTotal = 0;
-
-    occurrences.forEach(expense => {
-      if (!expense?.originalExpense) return;
-      const status = checkPaymentStatus(expense, expense.date);
-      
-      if (status.isPaid) {
-        paidTotal += expense.convertedAmount;
-      } else {
-        unpaidTotal += expense.convertedAmount;
-      }
-    });
-
-    return { paidTotal, unpaidTotal };
-  };
 
   const animateAllCards = () => {
     setIsDataReady(false);
@@ -144,17 +202,6 @@ export default function TabOneScreen() {
     animateAllCards();
   };
 
-  useEffect(() => {
-    const { paidTotal, unpaidTotal } = calculatePaymentTotals(monthOccurrences);
-    setMonthlyData(prev => ({
-      ...prev,
-      paid: paidTotal,
-      unpaid: unpaidTotal
-    }));
-    
-    animateAllCards();
-  }, [monthOccurrences]);
-
   const filterExpensesByPaymentStatus = (expenses: any[]) => {
     return expenses.filter(expense => {
       if (!expense?.originalExpense) return false;
@@ -180,7 +227,7 @@ export default function TabOneScreen() {
         const status = checkPaymentStatus(occurrence, occurrence.date);
         allPayments.push({
           id: occurrence.id || String(Math.random()),
-          name: occurrence.originalExpense?.title || occurrence.name || t('expense'),
+          name: occurrence.originalExpense?.name || occurrence.name || t('expense'),
           date: new Date(occurrence.date).toISOString().split('T')[0],
           color: status.isPaid ? '#34C759' : '#FF3B30',
           type: 'expense'
@@ -195,7 +242,7 @@ export default function TabOneScreen() {
           incomeDate.getFullYear() === currentDate.getFullYear()) {
         allPayments.push({
           id: income.id || String(Math.random()),
-          name: income.title || income.name || t('income'),
+          name: income.source || income.description || t('income'),
           date: incomeDate.toISOString().split('T')[0],
           color: '#007AFF',
           type: 'income'

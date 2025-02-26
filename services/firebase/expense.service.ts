@@ -59,6 +59,7 @@ export const expenseService = {
           date: data.date.toDate(),
           createdAt: data.createdAt?.toDate(),
           updatedAt: data.updatedAt?.toDate(),
+          paymentHistory: data.paymentHistory || {},
           priceHistory: data.priceHistory?.map((ph: any) => ({
             ...ph,
             effectiveDate: ph.effectiveDate.toDate(),

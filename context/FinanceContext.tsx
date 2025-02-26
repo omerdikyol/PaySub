@@ -117,28 +117,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await expenseService.updateExpensePaymentStatus(id, date, isPaid);
       
-      // Update the local state immediately
-      const updatedExpenses = expenses.map(expense => {
-        if (expense.id === id) {
-          return {
-            ...expense,
-            paymentHistory: {
-              ...expense.paymentHistory,
-              [date]: {
-                isPaid,
-                paidDate: isPaid ? new Date().toISOString() : null
-              }
-            }
-          };
-        }
-        return expense;
-      });
-      
-      setExpenses(updatedExpenses);
+      // Refresh data to ensure we have the latest state
+      await refreshData();
 
       // Reschedule daily notifications if enabled
       if (notificationsEnabled) {
-        await scheduleDailyNotifications(updatedExpenses);
+        await scheduleDailyNotifications(expenses);
       }
     } catch (err) {
       setError('Failed to update payment status');
