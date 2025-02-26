@@ -115,7 +115,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateExpensePaymentStatus = async (id: string, date: string, isPaid: boolean) => {
     if (!currentUser) return;
     try {
-      await expenseService.updateExpensePaymentStatus(id, date, isPaid);
+      // Normalize the date to ensure consistent format (YYYY-MM-DD)
+      const normalizedDate = new Date(date).toISOString().split('T')[0];
+      
+      await expenseService.updateExpensePaymentStatus(id, normalizedDate, isPaid);
       
       // Refresh data to ensure we have the latest state
       await refreshData();

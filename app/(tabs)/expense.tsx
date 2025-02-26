@@ -171,17 +171,22 @@ export default function Expense() {
     if (!occurrence?.originalExpense?.id) return;
     
     try {
-      const expenseDate = new Date(occurrence.date).toISOString();   
+      // Normalize the date to YYYY-MM-DD format
+      const expenseDate = new Date(occurrence.date).toISOString().split('T')[0];
       const currentPaymentStatus = checkPaymentStatus(occurrence, occurrence.date);
       const newIsPaid = !currentPaymentStatus.isPaid;
       
+      // Update payment status in the database
       await updateExpensePaymentStatus(
         occurrence.originalExpense.id,
         expenseDate,
         newIsPaid
       );
       
-      // Don't switch tabs automatically
+      // Force a UI refresh by setting the current date again
+      // This will trigger a recalculation of the financial data
+      setCurrentDate(new Date(currentDate));
+      
     } catch (error) {
       console.error('Error toggling payment status:', error);
     }

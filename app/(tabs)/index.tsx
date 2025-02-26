@@ -90,6 +90,8 @@ export default function TabOneScreen() {
 
     occurrences.forEach(expense => {
       if (!expense?.originalExpense) return;
+      
+      // Use the improved checkPaymentStatus function with normalized date
       const status = checkPaymentStatus(expense, expense.date);
       
       if (status.isPaid) {
@@ -224,6 +226,7 @@ export default function TabOneScreen() {
     // Add expenses
     monthOccurrences.forEach(occurrence => {
       if (occurrence.originalExpense) {
+        // Use the improved checkPaymentStatus function with normalized date
         const status = checkPaymentStatus(occurrence, occurrence.date);
         allPayments.push({
           id: occurrence.id || String(Math.random()),
@@ -250,7 +253,6 @@ export default function TabOneScreen() {
       }
     });
 
-    console.log('All payments for calendar:', allPayments);
     return allPayments;
   };
 

@@ -169,9 +169,12 @@ export const expenseService = {
 
   async updateExpensePaymentStatus(id: string, date: string, isPaid: boolean) {
     try {
+      // Ensure date is normalized to YYYY-MM-DD format
+      const normalizedDate = new Date(date).toISOString().split('T')[0];
+      
       const expenseRef = doc(db, collections.expenses, id);
       await updateDoc(expenseRef, {
-        [`paymentHistory.${date}`]: {
+        [`paymentHistory.${normalizedDate}`]: {
           isPaid,
           paidDate: isPaid ? new Date().toISOString() : null
         },

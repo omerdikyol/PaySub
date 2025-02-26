@@ -174,16 +174,36 @@ export const ExpenseCard = ({
   const getPaymentHistoryData = (date: string, paymentHistory?: { [key: string]: any }) => {
     if (!paymentHistory) return undefined;
     
-    const targetDate = date.split('T')[0];
-    const matchingKey = Object.keys(paymentHistory).find(key => key.split('T')[0] === targetDate);
-    if (!matchingKey) return undefined;
-
-    // Get the payment data and handle the nested structure
-    const paymentData = paymentHistory[matchingKey];
-    if (paymentData['025Z']) {
-      return paymentData['025Z'];
+    // Normalize the date to YYYY-MM-DD format
+    const targetDate = new Date(date).toISOString().split('T')[0];
+    
+    // First try direct match
+    if (paymentHistory[date]?.isPaid !== undefined) {
+      return paymentHistory[date];
     }
-    return paymentData;
+    
+    // Then try with normalized date
+    if (paymentHistory[targetDate]?.isPaid !== undefined) {
+      return paymentHistory[targetDate];
+    }
+    
+    // Finally, try to find any key that matches the date part
+    const matchingKey = Object.keys(paymentHistory).find(key => {
+      const keyDate = key.split('T')[0];
+      return keyDate === targetDate;
+    });
+    
+    if (!matchingKey) return undefined;
+    
+    // Get the payment data
+    const paymentData = paymentHistory[matchingKey];
+    
+    // Handle nested structures if they exist
+    if (paymentData && typeof paymentData === 'object' && 'isPaid' in paymentData) {
+      return paymentData;
+    }
+    
+    return undefined;
   };
 
   const expenseDate = item.date;
