@@ -1,14 +1,30 @@
 # PaySub
 
-PaySub is a mobile application for managing subscriptions and expenses, helping users track their recurring payments and financial commitments.
+An Expo/React Native personal-finance app for income, recurring expenses, subscriptions, and payment history. It includes currency selection, Turkish/English text, light/dark appearance, and notification settings.
 
-## Features
+## Project scope
 
-- 📱 Cross-platform mobile application (iOS and Android)
-- 💰 Expense tracking and management
-- 🔔 Push notification reminders
-- ⚙️ Customizable settings
-- 🔒 Secure Firebase integration
+The mobile app contains direct Firebase authentication and Firestore service flows. The separate `backend` directory is an experimental server implementation with a different, inconsistent persistence path; it is not a supported production authentication backend. Its login/password verification must be corrected before deployment. The screenshots show application UI, not a claim of production readiness.
+
+## Run the mobile app
+
+```sh
+git clone https://github.com/omerdikyol/PaySub.git
+cd PaySub
+npm install
+npx expo start
+```
+
+Use a Node.js version compatible with the checked-in Expo 52 SDK. Configure your own Firebase project through [app.config.ts](app.config.ts) and [config/firebase.ts](config/firebase.ts), and enable the authentication/database services used by the app. Check the actual Expo configuration mapping rather than assuming arbitrary `.env` names are read automatically. Notification behavior depends on device permissions and the runtime you use.
+
+## Code map
+
+- [app](app): routed screens for income, expenses, home, login, and settings.
+- [AuthContext](context/AuthContext.tsx): mobile authentication state.
+- [Firebase expense service](services/firebase/expense.service.ts) and [income service](services/firebase/income.service.ts): database operations.
+- [NotificationService](services/NotificationService.ts): notification scheduling/integration.
+- [Occurrence utilities](utils/occurrences.ts): recurring-payment calculations.
+- [backend documentation](backend/README.md): the experimental server layout, separate from the client service path.
 
 ## Screenshots
 
@@ -20,299 +36,34 @@ PaySub is a mobile application for managing subscriptions and expenses, helping 
 
 ### Income Tracking
 
-<img src="screenshots/income.png" width="250" alt="Expense Tracking">
+<img src="screenshots/income.png" width="250" alt="Finance screen">
 
 ### Adding New Income
 
-<img src="screenshots/add-income.png" width="250" alt="Expense Tracking">
+<img src="screenshots/add-income.png" width="250" alt="Finance screen">
 
 ### Expense Tracking
 
-<img src="screenshots/expense.png" width="250" alt="Expense Tracking">
+<img src="screenshots/expense.png" width="250" alt="Finance screen">
 
 ### Payment History
 
-<img src="screenshots/payment-history.png" width="250" alt="Expense Tracking">
+<img src="screenshots/payment-history.png" width="250" alt="Finance screen">
 
 ### Adding New Expense
 
-<img src="screenshots/add-expense.png" width="250" alt="Expense Tracking">
+<img src="screenshots/add-expense.png" width="250" alt="Finance screen">
 
 ### Settings
 
-<img src="screenshots/settings.png" width="250" alt="Settings Screen">
+<img src="screenshots/settings.png" width="250" alt="App settings and appearance">
 
 ### Dark Mode
 
-<img src="screenshots/dark.png" width="250" alt="Settings Screen">
+<img src="screenshots/dark.png" width="250" alt="App settings and appearance">
 
 ### Turkish Language Support
 
-<img src="screenshots/turkish.png" width="250" alt="Settings Screen">
+<img src="screenshots/turkish.png" width="250" alt="App settings and appearance">
 
 </div>
-
-## Tech Stack
-
-- React Native / Expo
-- Firebase (Authentication & Database)
-- TypeScript
-- Node.js
-
-## Prerequisites
-
-Before running this project, make sure you have the following installed:
-
-- Node.js (v14 or higher)
-- npm or yarn
-- Expo CLI
-- iOS Simulator (for Mac users) or Android Studio (for Android development)
-
-## Installation
-
-1. Clone the repository:
-
-```bash
-git clone [repository-url]
-cd PaySub
-```
-
-2. Install dependencies:
-
-```bash
-npm install
-# or
-yarn install
-```
-
-3. Set up environment variables:
-   Create a `.env` file in the root directory with the following variables:
-
-```
-# Firebase Configuration
-FIREBASE_API_KEY=your_api_key
-FIREBASE_AUTH_DOMAIN=your_auth_domain
-FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_STORAGE_BUCKET=your_storage_bucket
-FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-FIREBASE_APP_ID=your_app_id
-```
-
-4. Start the development server:
-
-```bash
-npx expo start
-```
-
-## Project Structure
-
-- `/app` - Main application code and screens
-- `/components` - Reusable React components
-- `/services` - Service layer (Notifications, API calls)
-- `/config` - Configuration files
-- `/assets` - Static assets (images, fonts)
-
-## API Documentation
-
-All API endpoints require Bearer token authentication except for login and register.
-
-### Authentication Endpoints
-
-```typescript
-// Register User
-POST /api/auth/register
-{
-    "email": "string",
-    "password": "string",
-    "name": "string",
-    "defaultCurrency": "string",  // e.g., "TRY", "USD"
-    "language": "string"          // e.g., "en", "tr"
-}
-
-// Login User
-POST /api/auth/login
-{
-    "email": "string",
-    "password": "string"
-}
-
-// Get User Profile
-GET /api/auth/profile
-
-// Update Profile
-PUT /api/auth/profile
-{
-    "name": "string",
-    "defaultCurrency": "string",
-    "language": "string",
-    "notificationPreferences": {
-        "defaultEnabled": boolean,
-        "defaultDaysInAdvance": number,
-        "defaultTime": {
-            "hour": number,
-            "minute": number
-        }
-    }
-}
-```
-
-### Expense Endpoints
-
-```typescript
-// Get All Expenses
-GET /api/expenses
-
-// Get Expenses with Date Filter
-GET /api/expenses?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
-
-// Get Single Expense
-GET /api/expenses/:id
-
-// Create Expense
-POST /api/expenses
-{
-    "amount": number,
-    "currency": "string",
-    "name": "string",
-    "startDate": "string",      // ISO date format
-    "color": "string",          // hex color code
-    "recurrence": {
-        "type": "monthly" | "yearly",
-        "interval": number
-    },
-    "notification": {
-        "enabled": boolean,
-        "daysInAdvance": number,
-        "time": {
-            "hour": number,
-            "minute": number
-        }
-    },
-    "service": {
-        "id": "string",
-        "name": "string",
-        "logo": "string",
-        "customName": "string"
-    }
-}
-
-// Update Expense
-PUT /api/expenses/:id
-{
-    "amount": number,
-    "name": "string",
-    "recurrence": {
-        "type": "monthly" | "yearly",
-        "interval": number
-    }
-}
-
-// Delete Expense
-DELETE /api/expenses/:id
-
-// Update Payment Status
-PATCH /api/expenses/:id/payment
-{
-    "date": "string",    // ISO date format
-    "isPaid": boolean
-}
-```
-
-### Income Endpoints
-
-```typescript
-// Get All Incomes
-GET /api/incomes
-
-// Get Single Income
-GET /api/incomes/:id
-
-// Create Income
-POST /api/incomes
-{
-    "amount": number,
-    "currency": "string",
-    "name": "string",
-    "startDate": "string",    // ISO date format
-    "color": "string",        // hex color code
-    "recurrence": {
-        "type": "monthly" | "yearly",
-        "interval": number
-    }
-}
-
-// Update Income
-PUT /api/incomes/:id
-{
-    "amount": number,
-    "name": "string"
-}
-
-// Delete Income
-DELETE /api/incomes/:id
-```
-
-### Service Endpoints
-
-```typescript
-// Get All Services
-GET /api/services
-
-// Get Service Categories
-GET /api/services/categories
-
-// Get Services by Category
-GET /api/services/category/:categoryId
-
-// Search Services
-GET /api/services/search?query=searchterm
-```
-
-### Response Format
-
-All API endpoints return responses in the following format:
-
-```typescript
-{
-    "success": boolean,
-    "data"?: any,
-    "error"?: {
-        "code": string,
-        "message": string
-    }
-}
-```
-
-### Common Error Codes
-
-- `AUTH_001`: Authentication failed
-- `AUTH_002`: Invalid credentials
-- `AUTH_003`: Token expired
-- `EXP_001`: Invalid expense data
-- `EXP_002`: Expense not found
-- `INC_001`: Invalid income data
-- `NOT_001`: Invalid notification settings
-
-### Base URL
-
-For local development: `http://localhost:3000`
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Contact
-
-Project Link: [[repository-url]](https://github.com/omerdikyol/PaySub)
-
----
-
-Made with ❤️ by Ömer Dikyol
