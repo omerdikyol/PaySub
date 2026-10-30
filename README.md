@@ -1,4 +1,10 @@
-# PaySub
+<h1 align="center">PaySub</h1>
+
+<p align="center">
+  <img alt="Expo: React Native" src="https://img.shields.io/badge/Expo-React%20Native-000020">
+  <img alt="backend: Firebase" src="https://img.shields.io/badge/backend-Firebase-FFCA28">
+  <img alt="status: prototype" src="https://img.shields.io/badge/status-prototype-yellow">
+</p>
 
 An Expo/React Native personal-finance app for income, recurring expenses, subscriptions, and payment history. It includes currency selection, Turkish/English text, light/dark appearance, and notification settings.
 
