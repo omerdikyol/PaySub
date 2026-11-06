@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+import { DEMO_MODE } from '@/services/demo';
 import { PremiumStatus, PremiumLimits, FREE_LIMITS, PREMIUM_LIMITS } from '@/types/premium';
 
 // Only import Purchases in development builds
@@ -36,7 +37,7 @@ export const PremiumProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const initializePurchases = async () => {
     // Skip RevenueCat initialization in Expo Go
-    if (!Purchases) {
+    if (!Purchases || DEMO_MODE) {
       console.log('Running in Expo Go - Premium features limited');
       return;
     }

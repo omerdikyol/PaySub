@@ -3,6 +3,7 @@ import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DEMO_MODE } from '../services/demo';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -16,15 +17,18 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// The web demo never talks to Firebase, so it skips initialization entirely.
+const app = DEMO_MODE ? null : initializeApp(firebaseConfig);
 
 // Initialize Firebase Authentication with AsyncStorage persistence
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
-});
+export const auth = DEMO_MODE
+  ? (null as any)
+  : initializeAuth(app!, {
+      persistence: getReactNativePersistence(AsyncStorage)
+    });
 
 // Initialize Cloud Firestore and get a reference to the service
-export const db = getFirestore(app);
+export const db = DEMO_MODE ? (null as any) : getFirestore(app!);
 
 // Collections
 export const collections = {

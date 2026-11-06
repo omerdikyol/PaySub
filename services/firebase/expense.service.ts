@@ -1,5 +1,6 @@
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, Timestamp, getDoc } from 'firebase/firestore';
 import { db, collections } from '../../config/firebase';
+import { DEMO_MODE, demoExpenseService } from '../demo';
 
 export interface Expense {
   id?: string;
@@ -29,7 +30,7 @@ export interface Expense {
   selectedOccurrenceDate?: string;
 }
 
-export const expenseService = {
+const firebaseExpenseService = {
   async getExpenses(userId: string, startDate?: Date, endDate?: Date) {
     try {
       let q = query(
@@ -185,4 +186,6 @@ export const expenseService = {
       throw error;
     }
   }
-}; 
+};
+
+export const expenseService: typeof firebaseExpenseService = DEMO_MODE ? (demoExpenseService as any) : firebaseExpenseService;

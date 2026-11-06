@@ -32,7 +32,9 @@ export default {
     },
     plugins: ['expo-router'],
     experiments: {
-      typedRoutes: true
+      typedRoutes: true,
+      // The GitHub Pages demo is served from /PaySub.
+      ...(process.env.EXPO_PUBLIC_DEMO_MODE === '1' && { baseUrl: '/PaySub' })
     },
     extra: {
       firebaseApiKey: process.env.FIREBASE_API_KEY,

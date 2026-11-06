@@ -10,6 +10,7 @@ import {
 import { auth, db } from '../config/firebase';
 import { deleteDoc, doc, collection, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { router } from 'expo-router';
+import { DEMO_MODE, demoUser } from '../services/demo';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -35,6 +36,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (DEMO_MODE) {
+      setCurrentUser(demoUser);
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);
@@ -44,10 +50,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
+    if (DEMO_MODE) return setCurrentUser(demoUser);
     await signInWithEmailAndPassword(auth, email, password);
   };
 
   const signup = async (email: string, password: string) => {
+    if (DEMO_MODE) {
+      setCurrentUser(demoUser);
+      router.replace('/(tabs)');
+      return;
+    }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
@@ -81,6 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    if (DEMO_MODE) return setCurrentUser(null);
     await signOut(auth);
   };
 
@@ -88,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentUser) {
       throw new Error('No user logged in');
     }
+    if (DEMO_MODE) throw new Error('Account deletion is disabled in the demo.');
 
     try {
       // Delete user's expenses

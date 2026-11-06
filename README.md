@@ -8,6 +8,10 @@
 
 An Expo/React Native personal-finance app for income, recurring expenses, subscriptions, and payment history. It includes currency selection, Turkish/English text, light/dark appearance, and notification settings.
 
+## Live demo
+
+**[omerdikyol.github.io/PaySub](https://omerdikyol.github.io/PaySub/)**: the Expo web build with Firebase replaced by in-memory mock data ([services/demo.ts](services/demo.ts)). You are signed in as a demo user; changes last until you reload, and nothing is stored. Best viewed at phone width. Build it locally with `EXPO_PUBLIC_DEMO_MODE=1 npx expo export -p web`.
+
 ## Project scope
 
 The mobile app contains direct Firebase authentication and Firestore service flows. The separate `backend` directory is an experimental server implementation with a different, inconsistent persistence path; it is not a supported production authentication backend. Its login/password verification must be corrected before deployment. The screenshots show application UI, not a claim of production readiness.

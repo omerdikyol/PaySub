@@ -1,5 +1,6 @@
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, Timestamp } from 'firebase/firestore';
 import { db, collections } from '../../config/firebase';
+import { DEMO_MODE, demoIncomeService } from '../demo';
 
 export interface Income {
   id?: string;
@@ -14,7 +15,7 @@ export interface Income {
   isActive: boolean;
 }
 
-export const incomeService = {
+const firebaseIncomeService = {
   async getIncomes(userId: string, startDate?: Date, endDate?: Date) {
     try {
       let q = query(
@@ -94,4 +95,6 @@ export const incomeService = {
       throw error;
     }
   }
-}; 
+};
+
+export const incomeService: typeof firebaseIncomeService = DEMO_MODE ? (demoIncomeService as any) : firebaseIncomeService;
