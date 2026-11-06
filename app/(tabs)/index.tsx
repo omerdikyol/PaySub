@@ -1,4 +1,5 @@
 import { StyleSheet, View, ScrollView, TouchableOpacity, Animated } from 'react-native';
+import { getIncomeOccurrencesInRange } from '@/utils/incomeOccurrences';
 import React, { useState, useEffect, useRef } from 'react';
 import { ThemedView, ThemedText, ThemedCard } from '@/components/Themed';
 import { useTheme } from '@/components/useTheme';
@@ -114,15 +115,12 @@ export default function TabOneScreen() {
     // Calculate total expenses
     const totalExpenses = paidTotal + unpaidTotal;
     
-    // Calculate total income (simplified for now)
-    const totalIncome = incomes.reduce((sum, income) => {
-      const incomeDate = new Date(income.date);
-      if (incomeDate.getMonth() === currentDate.getMonth() && 
-          incomeDate.getFullYear() === currentDate.getFullYear()) {
-        return sum + income.amount;
-      }
-      return sum;
-    }, 0);
+    // Total income for the month, including every occurrence of recurring incomes
+    const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    const totalIncome = incomes
+      .flatMap((income: any) => getIncomeOccurrencesInRange(income, monthStart, monthEnd))
+      .reduce((sum, occurrence) => sum + occurrence.amount, 0);
     
     // Calculate remaining budget
     const remaining = totalIncome - totalExpenses;

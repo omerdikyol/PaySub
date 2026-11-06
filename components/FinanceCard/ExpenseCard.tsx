@@ -79,7 +79,6 @@ export const ExpenseCard = ({
   today.setHours(0, 0, 0, 0);
   const paymentDate = new Date(item.date);
   paymentDate.setHours(0, 0, 0, 0);
-  const isOverdue = !isPaid && paymentDate < today;
 
   // Custom render for the date column to show overdue status
   const renderDateColumn = () => {
@@ -209,6 +208,7 @@ export const ExpenseCard = ({
   const expenseDate = item.date;
   const paymentHistoryData = getPaymentHistoryData(expenseDate, item.originalExpense.paymentHistory);
   const isPaid = paymentHistoryData?.isPaid ?? false;
+  const isOverdue = !isPaid && paymentDate < today;
 
   // Custom render for the right column with payment button
   const renderRightColumn = () => {
